@@ -8,12 +8,13 @@ Desenvolvido por **Iran Ribeiro** · [GitHub](https://github.com/IranRibeiro55)
 
 ## Índice
 
+- [Como usar](#como-usar)
 - [Requisitos](#requisitos)
 - [Instalação](#instalação)
-- [Como executar](#como-executar)
-- [O que o BIA faz](#o-que-o-bia-faz)
 - [Estrutura do projeto](#estrutura-do-projeto)
+- [O que o BIA faz](#o-que-o-bia-faz)
 - [Documentação dos menus](#documentação-dos-menus)
+- [Idiomas e versão](#idiomas-e-versão)
 - [Configuração e personalização](#configuração-e-personalização)
 - [Log e arquivos gerados](#log-e-arquivos-gerados)
 - [Solução de problemas](#solução-de-problemas)
@@ -21,36 +22,11 @@ Desenvolvido por **Iran Ribeiro** · [GitHub](https://github.com/IranRibeiro55)
 
 ---
 
-## Requisitos
+## Como usar
 
-- **Windows** (testado em Windows 10/11 e Server)
-- **PowerShell 5.1** ou superior (já incluso no Windows)
-- Algumas opções exigem **elevação de administrador** (SFC, ponto de restauração, serviços, etc.)
+### 1. Iniciar o BIA
 
----
-
-## Instalação
-
-1. Clone o repositório ou baixe os arquivos em uma pasta, por exemplo:
-   ```
-   C:\Ferramentas\BIA-Shell\
-   ```
-
-2. Mantenha na mesma pasta os três arquivos principais:
-   - `BIA-Shell.ps1`
-   - `BIA-UI.ps1`
-   - `BIA-Launcher.bat`
-
-3. (Opcional) Se o PowerShell bloquear a execução de scripts, abra o PowerShell **como Administrador** e execute:
-   ```powershell
-   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-   ```
-
----
-
-## Como executar
-
-- **Recomendado:** dê duplo clique em **`BIA-Launcher.bat`**.  
+- **Recomendado:** dê **duplo clique** em **`BIA-Launcher.bat`**.  
   Ele abre o PowerShell e executa o BIA com a política de execução adequada.
 
 - **Pelo PowerShell:**
@@ -63,31 +39,115 @@ Desenvolvido por **Iran Ribeiro** · [GitHub](https://github.com/IranRibeiro55)
 
 ---
 
+### 2. Escolher o idioma
+
+Na primeira tela, o BIA pergunta o idioma:
+
+- **1** – Português  
+- **2** – English  
+- **3** – Español  
+
+Digite **1**, **2** ou **3** e pressione **Enter**. O restante do assistente (menus, mensagens, saudação, etc.) será exibido no idioma escolhido.
+
+---
+
+### 3. Tela inicial e menu principal
+
+Após o idioma, o BIA exibe:
+
+1. **Cabeçalho** com usuário, computador e IP.  
+2. **Resumo da máquina:** usuário, computador, domínio AD, SO, versão, uptime, fabricante, modelo, RAM, disco, IP(s), data/hora.  
+3. **Saudação** (Bom dia / Boa tarde / Boa noite) + seu nome.  
+4. **“Como posso ajudar?”** — pressione **Enter** para ver o menu principal.
+
+No **menu principal** você verá as opções numeradas (1 a 12), mais **R**, **S** e **0**:
+
+- Digite o **número ou letra** da opção desejada e pressione **Enter** para entrar no submenu ou executar a ação.  
+- Em qualquer submenu, use a opção **0** (ou **Voltar**) para retornar ao menu anterior.  
+- **R** (no menu principal) — **Ver resumo da máquina**: volta à tela inicial (resumo + saudação) e em seguida ao menu.  
+- **S** — **Sobre**: créditos e link do repositório.  
+- **0** — **Sair**: encerra o BIA (exibe mensagem de despedida e créditos).
+
+---
+
+### 4. Navegação no dia a dia
+
+| Ação | Como fazer |
+|------|------------|
+| Ver o menu principal | No menu principal, as opções estão sempre visíveis; digite o número/letra. |
+| Voltar ao menu anterior | Digite **0** (ou a opção “Voltar”) no submenu. |
+| Voltar ao início (resumo + menu) | No menu principal, digite **R**. |
+| Sair do BIA | No menu principal, digite **0**. |
+
+Após cada ação (por exemplo, limpeza, diagnóstico, export), o BIA geralmente mostra **“Pressione Enter para continuar”** e depois reexibe o menu em que você estava.
+
+---
+
+### 5. Dicas rápidas
+
+- **Administrador:** várias opções (SFC, ponto de restauração, serviços, GPO, etc.) exigem que o BIA seja executado **como Administrador**. Clique com o botão direito em `BIA-Launcher.bat` → **Executar como administrador**.  
+- **Nova versão:** na inicialização, o BIA consulta o GitHub e, se houver uma versão mais nova que a instalada, exibe uma mensagem com o link para download.  
+- **Log:** ações em alguns menus (Usuário, Playbooks, Informações do sistema) são registradas em `%TEMP%\BIA\BIA_Acoes.log`.
+
+---
+
+## Requisitos
+
+- **Windows** (testado em Windows 10/11 e Server)
+- **PowerShell 5.1** ou superior (já incluso no Windows)
+- Algumas opções exigem **elevação de administrador** (SFC, ponto de restauração, serviços, etc.)
+- **winget** é necessário apenas para o menu **Instalar aplicativos** (já incluso no Windows 10/11 atualizado)
+
+---
+
+## Instalação
+
+1. Clone o repositório ou baixe os arquivos em uma pasta, por exemplo:
+   ```
+   C:\Ferramentas\BIA-Shell\
+   ```
+
+2. Mantenha na mesma pasta os quatro arquivos principais:
+   - `BIA-Shell.ps1`
+   - `BIA-UI.ps1`
+   - `BIA-Lang.ps1`
+   - `BIA-Launcher.bat`
+
+3. **(Opcional)** Se o PowerShell bloquear a execução de scripts, abra o PowerShell **como Administrador** e execute:
+   ```powershell
+   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+   ```
+   O `BIA-Launcher.bat` usa `-ExecutionPolicy Bypass` e não depende dessa configuração, mas executar o `.ps1` diretamente pode exigir isso.
+
+---
+
+## Estrutura do projeto
+
+| Arquivo | Função |
+|--------|--------|
+| **BIA-Launcher.bat** | Atalho que inicia o PowerShell e executa o script. **Use este para abrir o BIA.** |
+| **BIA-Shell.ps1** | Script principal: fluxo, menus, playbooks, diagnóstico, Azure, apps, ferramentas, etc. |
+| **BIA-UI.ps1** | Módulo de interface: cores, caixas, splash, barras de progresso, spinner, painel de informações. |
+| **BIA-Lang.ps1** | Textos em PT, EN e ES; função `Get-BIAStr` para o idioma escolhido. |
+| **README.md** | Esta documentação. |
+
+O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` e o `BIA-Lang.ps1` no início. Não renomeie nem separe os arquivos se quiser que tudo funcione como está.
+
+---
+
 ## O que o BIA faz
 
 - **Tela inicial:** resumo da máquina (usuário, computador, domínio AD, SO, uptime, fabricante, modelo, RAM, disco, IP) e saudação (Bom dia / Boa tarde / Boa noite).
 - **Cabeçalho em todas as telas:** usuário, computador e **IP** sempre visíveis.
 - **Opção “Voltar ao início” (R):** volta ao resumo e à pergunta “Como posso ajudar?”.
 - **Animações:** splash de carregamento, barras de progresso, spinner em operações longas, transições entre menus.
-- **Menus:** Usuário, TI, Rede, AD, Utilitários, Playbooks, Informações do sistema, Diagnóstico rápido, **Impressoras**, **Azure (Connect/CLI)**, **Instalar aplicativos (winget)** e **Sobre** (créditos e link do GitHub).
-- **Impressoras:** listar, definir padrão, adicionar/remover, página de teste, reiniciar spooler, limpar fila, ver trabalhos na fila.
-- **Azure:** Connect-AzAccount, Get-AzContext, az login, az account show, instalar módulo Az ou Azure CLI.
-- **Instalar aplicativos:** lista de apps via winget (7-Zip, Chrome, Firefox, Notepad++, VLC, Git, VS Code, PowerShell 7, Azure CLI, etc.).
+- **Idiomas:** PT, EN e ES (escolha no início).
+- **Verificação de versão:** na inicialização, avisa se houver nova versão no GitHub.
+- **Menus:** Usuário, TI, Rede, AD, Utilitários, Playbooks, Informações do sistema, Diagnóstico rápido, Impressoras, Azure, Instalar aplicativos, Comandos e ferramentas, Sobre.
+- **Opções de desempenho (Utilitários):** abrir painel de desempenho do Windows ou definir “Melhor aparência” / “Melhor desempenho”.
+- **Resumo em uma página:** export em TXT com os dados principais da máquina (Informações do sistema > opção 5).
 - **Log:** ações registradas em `%TEMP%\BIA\BIA_Acoes.log`.
-- **Export:** informações completas do sistema em TXT em `%TEMP%\BIA\`.
-
----
-
-## Estrutura do projeto
-
-| Arquivo            | Função |
-|--------------------|--------|
-| **BIA-Launcher.bat** | Atalho que inicia o PowerShell e executa o script. Use este para abrir o BIA. |
-| **BIA-Shell.ps1**    | Script principal: fluxo, menus, funções (limpeza, rede, TI, AD, playbooks, diagnóstico, etc.). |
-| **BIA-UI.ps1**       | Módulo de interface: cores, caixas, splash, barras de progresso, spinner, painel de informações. |
-| **README.md**        | Esta documentação. |
-
-O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie nem separe os arquivos se quiser que tudo funcione como está.
+- **Export:** informações completas do sistema em TXT e resumo em uma página em `%TEMP%\BIA\`.
 
 ---
 
@@ -95,21 +155,23 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 
 ### Menu principal
 
-- **1 – Usuário** – Atendimento rápido ao usuário final.
-- **2 – TI** – Ferramentas para administradores.
-- **3 – Servidor / Active Directory** – AD, GPO, DNS, DHCP, repadmin, dcdiag, etc.
-- **4 – Rede e Segurança** – Ping, tracert, netstat, firewall, winsock, mapear unidade, abrir \\computador.
-- **5 – Utilitários** – Regedit, desligamento agendado, limpeza de disco, otimizar volumes, backup do registro, TeamViewer/AnyDesk, atalhos (Notepad, Calc, CMD, PowerShell), esvaziar Lixeira, variáveis de ambiente, clipboard, hash de arquivo, relatório de bateria, ativação do Windows, painéis (Programas, Rede, Energia, Som, Data/hora, Credenciais).
-- **6 – Playbooks automáticos** – PC lento, sem internet, impressora travada (ações em sequência).
-- **7 – Informações do sistema** – Resumo detalhado, export para TXT, uptime, **dashboard** (mesmo resumo da tela inicial).
-- **8 – Diagnóstico rápido** – Health check (disco, RAM, rede, serviços), eventos de erro 24h, teste de conectividade, espaço em disco/RAM.
-- **9 – Impressoras** – Listar, definir padrão, adicionar/remover, página de teste, reiniciar spooler, limpar fila, ver trabalhos.
-- **10 – Azure** – Connect-AzAccount, Get-AzContext, az login, az account show, instalar módulo Az ou Azure CLI.
-- **11 – Instalar aplicativos** – Instalação via winget (7-Zip, Chrome, Firefox, Notepad++, VLC, Git, VS Code, PowerShell 7, Azure CLI, Teams, Slack, etc.).
-- **12 – Comandos e ferramentas (CMD / PowerShell)** – nslookup, Test-NetConnection, route, arp, whoami, variáveis de ambiente, tarefas agendadas, programas de inicialização, pendência de reinício, Windows Defender, DISM, relatório de bateria, ativação do Windows, Relatório de Confiabilidade, clipboard, hash de arquivo, esvaziar Lixeira, atalhos para painéis (Programas, Rede, Energia, Som, Data/hora, Credenciais), net share, net user, bloquear estação, processo por porta, WSL.
-- **R – Ver resumo da máquina** – Volta à tela inicial (resumo + saudação).
-- **S – Sobre** – Créditos e link do repositório (Iran Ribeiro / GitHub).
-- **0 – Sair** – Encerra o BIA (exibe créditos ao sair).
+| Tecla | Descrição |
+|-------|-----------|
+| **1** | Usuário – Atendimento rápido |
+| **2** | TI – Ferramentas administrativas |
+| **3** | Servidor / Active Directory |
+| **4** | Rede e Segurança |
+| **5** | Utilitários |
+| **6** | Playbooks automáticos |
+| **7** | Informações do sistema |
+| **8** | Diagnóstico rápido (health check) |
+| **9** | Impressoras |
+| **10** | Azure (Connect / CLI) |
+| **11** | Instalar aplicativos (winget) |
+| **12** | Comandos e ferramentas (CMD / PowerShell) |
+| **R** | Ver resumo da máquina (voltar ao início) |
+| **S** | Sobre / Créditos |
+| **0** | Sair |
 
 ---
 
@@ -135,14 +197,14 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 
 | Opção | Descrição |
 |-------|-----------|
-| 1 | `gpupdate /force` (com spinner). |
+| 1 | `gpupdate /force`. |
 | 2 | Abre o Visualizador de Eventos. |
 | 3 | Abre Services (services.msc). |
 | 4 | Abre o Monitor de Desempenho (perfmon). |
 | 5 | Abre o Gerenciador de Tarefas. |
 | 6 | Lista processos (tasklist). |
 | 7 | Encerra processo por nome (taskkill). |
-| 8 | Lista softwares instalados (WMIC – pode demorar). |
+| 8 | Lista softwares instalados (WMIC). |
 | 9 | Top 10 processos por CPU/RAM. |
 | a | Abre Conexão Remota (mstsc). |
 | b | Abre Gerenciamento do computador (compmgmt.msc) local. |
@@ -220,6 +282,7 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 | e | Relatório de bateria (powercfg; abre HTML na Área de Trabalho). |
 | f | Ativação do Windows (status). |
 | g | Painéis: Programas (appwiz), Rede (ncpa), Energia, Som, Data/hora, Credenciais. |
+| **h** | **Opções de desempenho (aparência vs desempenho):** [1] Abrir painel do Windows, [2] Melhor aparência, [3] Melhor desempenho. |
 | 0 | Voltar. |
 
 ---
@@ -228,60 +291,78 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 
 Executam sequências prontas:
 
-- **1 – PC lento:** limpa TEMP, Windows\Temp, flush DNS, release/renew IP.
-- **2 – Sem internet:** reset Winsock e IP, flush DNS, release/renew IP.
-- **3 – Impressora travada:** para o spooler, limpa a fila, reinicia o spooler.
+| Opção | Descrição |
+|-------|-----------|
+| **1** | **PC lento:** limpa TEMP, Windows\Temp, flush DNS, release/renew IP. |
+| **2** | **Sem internet:** reset Winsock e IP, flush DNS, release/renew IP. |
+| **3** | **Impressora travada:** para o spooler, limpa a fila, reinicia o spooler. |
+| **4** | **Sem som:** verifica serviço Audiosrv, dispositivos de áudio e orientações. |
+| **5** | **Verificar se precisa reiniciar:** verifica pendência de reinício e exibe uptime. |
+| 0 | Voltar. |
 
 ---
 
 ### 7) Informações do sistema
 
-- **1 – Resumo na tela** – SO, hardware, CPU, RAM, discos, rede, BIOS.
-- **2 – Exportar pacote completo** – Gera TXT em `%TEMP%\BIA\` com systeminfo, WMI (OS, disk, rede, BIOS, etc.).
-- **3 – Uptime** – Tempo ligado desde o último boot.
-- **4 – Ver dashboard** – Mesmo resumo da tela inicial (usuário, máquina, AD, RAM, disco, IP).
+| Opção | Descrição |
+|-------|-----------|
+| 1 | Resumo na tela – SO, hardware, CPU, RAM, discos, rede, BIOS. |
+| 2 | Exportar pacote completo – Gera TXT em `%TEMP%\BIA\` com systeminfo, WMI (OS, disk, rede, BIOS, etc.). |
+| 3 | Uptime – Tempo ligado desde o último boot. |
+| 4 | Ver dashboard – Mesmo resumo da tela inicial (usuário, máquina, AD, RAM, disco, IP). |
+| **5** | **Resumo em uma página** – Gera um TXT em `%TEMP%\BIA\` com usuário, PC, domínio, SO, uptime, fabricante, modelo, RAM, disco, IP, pendência de reinício, data/hora (rótulos no idioma escolhido). |
+| 0 | Voltar. |
 
 ---
 
 ### 8) Diagnóstico rápido (health check)
 
-- **1 – Diagnóstico completo** – Disco (%), RAM (livre/uso), ping 8.8.8.8, serviços (Spooler, Dhcp, Dnscache, Winmgmt).
-- **2 – Eventos de erro** – Últimos erros do System nas últimas 24h.
-- **3 – Teste de conectividade** – Ping em 8.8.8.8, 1.1.1.1, www.google.com.
-- **4 – Espaço em disco e memória** – Resumo rápido.
+| Opção | Descrição |
+|-------|-----------|
+| 1 | Diagnóstico completo – Disco (%), RAM (livre/uso), ping 8.8.8.8, serviços (Spooler, Dhcp, Dnscache, Winmgmt). |
+| 2 | Eventos de erro – Últimos erros do System nas últimas 24h. |
+| 3 | Teste de conectividade – Ping em 8.8.8.8, 1.1.1.1, www.google.com. |
+| 4 | Espaço em disco e memória – Resumo rápido. |
+| 0 | Voltar. |
 
 ---
 
 ### 9) Impressoras
 
-- **1 – Listar impressoras** – Nome, driver e porta.
-- **2 – Definir impressora padrão** – Pede o nome da impressora.
-- **3 – Abrir Painel de Impressoras** – `control printers`.
-- **4 – Adicionar impressora** – Assistente do Windows (rundll32).
-- **5 – Remover impressora** – Pede o nome.
-- **6 – Imprimir página de teste** – Pede o nome (usa PrintManagement).
-- **7 – Reiniciar serviço Spooler**.
-- **8 – Limpar fila de impressão** – Mesmo playbook “Impressora travada”.
-- **9 – Listar trabalhos na fila** – Por impressora.
+| Opção | Descrição |
+|-------|-----------|
+| 1 | Listar impressoras (nome, driver, porta). |
+| 2 | Definir impressora padrão. |
+| 3 | Abrir Painel de Impressoras. |
+| 4 | Adicionar impressora (assistente). |
+| 5 | Remover impressora. |
+| 6 | Imprimir página de teste. |
+| 7 | Reiniciar serviço Spooler. |
+| 8 | Limpar fila de impressão (mesmo playbook “Impressora travada”). |
+| 9 | Listar trabalhos na fila por impressora. |
+| 0 | Voltar. |
 
 ---
 
 ### 10) Azure (Connect / CLI)
 
-- **1 – Connect-AzAccount** – Login no Azure via PowerShell (módulo Az).
-- **2 – Get-AzContext** – Ver contexto/assinatura atual.
-- **3 – az login** – Login via Azure CLI.
-- **4 – az account show** – Ver conta/assinatura da CLI.
-- **5 – Instalar módulo Az** – `Install-Module Az -Scope CurrentUser`.
-- **6 – Instalar Azure CLI** – Via winget (Microsoft.AzureCLI).
+| Opção | Descrição |
+|-------|-----------|
+| 1 | Connect-AzAccount – Login no Azure via PowerShell (módulo Az). |
+| 2 | Get-AzContext – Ver contexto/assinatura atual. |
+| 3 | az login – Login via Azure CLI. |
+| 4 | az account show – Ver conta/assinatura da CLI. |
+| 5 | Instalar módulo Az – Instala o módulo Az se faltar. |
+| 6 | Instalar Azure CLI – Via winget (Microsoft.AzureCLI). |
+| 0 | Voltar. |
 
 ---
 
 ### 11) Instalar aplicativos (winget)
 
-Menu com lista de aplicativos instaláveis via **winget** (Windows Package Manager). Basta escolher o número; o BIA executa `winget install <id>` com aceite de termos.
+Menu com lista de aplicativos instaláveis via **winget**. Basta escolher o número; o BIA executa `winget install <id>` com aceite de termos.
 
-**Apps disponíveis (entre outros):** 7-Zip, Google Chrome, Firefox, Notepad++, VLC, Git, VS Code, PowerShell 7, Azure CLI, Windows Terminal, PuTTY, WinSCP, Java JRE, Python 3.12, Microsoft Teams, Zoom, Adobe Acrobat Reader, Microsoft Edge.
+**Apps disponíveis (entre outros):** 7-Zip, Google Chrome, Firefox, Notepad++, VLC, Git, VS Code, PowerShell 7, Azure CLI, Windows Terminal, PuTTY, WinSCP, Java JRE, Python 3.12, Microsoft Teams, Zoom, Slack, Discord, Telegram, Node.js, Postman, Docker, Spotify, KeePassXC, OBS, OneDrive, Microsoft 365, Miniconda, SSMS, Adobe Acrobat Reader, Microsoft Edge.
 
 Requer **winget** instalado (incluído no Windows 10/11 atualizado).
 
@@ -289,7 +370,7 @@ Requer **winget** instalado (incluído no Windows 10/11 atualizado).
 
 ### 12) Comandos e ferramentas (CMD / PowerShell)
 
-Reúne comandos e ferramentas comuns de CMD e PowerShell em um único menu:
+Reúne comandos e ferramentas comuns em um único menu:
 
 | Área | Opção | Descrição |
 |------|-------|-----------|
@@ -297,8 +378,16 @@ Reúne comandos e ferramentas comuns de CMD e PowerShell em um único menu:
 | Sistema | 6–a | whoami /all, variáveis de ambiente, tarefas agendadas, programas de inicialização, pendência de reinício. |
 | Segurança / Manutenção | b–f | Windows Defender (status + scan), DISM RestoreHealth, relatório de bateria, ativação do Windows, Relatório de Confiabilidade. |
 | Arquivos | g–i | Ver clipboard, hash de arquivo (SHA256), esvaziar Lixeira. |
-| Atalhos | j | Programas, Rede, Energia, Som, Data/hora, Credenciais (Credential Manager). |
+| Atalhos | j | Programas, Rede, Energia, Som, Data/hora, Credenciais. |
 | Outros | k–o | net share, net user, bloquear estação, processo por porta, WSL --list. |
+| 0 | Voltar. |
+
+---
+
+## Idiomas e versão
+
+- **Idiomas:** No início da execução o BIA pergunta o idioma (1=PT, 2=EN, 3=ES). Menus principais, saudação, mensagens de saída, playbooks, resumo em uma página e aviso de nova versão usam o idioma escolhido. Alguns submenus (TI, AD, Rede, Utilitários, Diagnóstico, Impressoras, Azure, Comandos e ferramentas, Instalar apps) podem ainda exibir texto em português.
+- **Verificação de versão:** Na inicialização o BIA consulta a API do GitHub para a última release. Se a versão disponível for maior que a atual (ex.: 8.0), exibe uma mensagem do tipo “Nova versão disponível: X.X (atual: Y.Y) | link”. A versão atual está definida em `$script:BIA_Version` em `BIA-Shell.ps1`.
 
 ---
 
@@ -306,16 +395,18 @@ Reúne comandos e ferramentas comuns de CMD e PowerShell em um único menu:
 
 - **Cores e tema:** em `BIA-UI.ps1`, edite o hashtable `$script:BIA_Theme` (Title, Header, Menu, Success, Warning, Error, Accent, Muted).
 - **Splash e loading:** em `BIA-UI.ps1`, funções `Show-BIASplash` e `Show-BIALoading` (mensagem, tempo, caracteres).
+- **Textos e idiomas:** em `BIA-Lang.ps1`, tabelas `$script:BIA_Strings.pt`, `.en`, `.es` e função `Get-BIAStr`.
 - **Novas opções no menu:** em `BIA-Shell.ps1`, no menu desejado:
-  - Adicione uma linha em `Write-BIABox -Lines @(...)`.
+  - Adicione uma linha em `Write-BIABox -Lines @(...)` (ou equivalente).
   - No `switch ($op)` adicione um novo caso (ex.: `'X' { ... }`).
 
 ---
 
 ## Log e arquivos gerados
 
-- **Log de ações:** `%TEMP%\BIA\BIA_Acoes.log` (registro de algumas ações escolhidas no menu).
+- **Log de ações:** `%TEMP%\BIA\BIA_Acoes.log` (registro de ações em menus como Usuário, Playbooks, Informações do sistema).
 - **Export de sistema:** `%TEMP%\BIA\SysInfo_<COMPUTERNAME>_<data-hora>.txt`.
+- **Resumo em uma página:** `%TEMP%\BIA\Resumo_<COMPUTERNAME>_<data-hora>.txt`.
 - **Backup do registro:** `%TEMP%\BIA\RegBackup_<data-hora>.reg` (apenas HKCU, opção Utilitários > 7).
 
 A pasta `%TEMP%\BIA` é criada automaticamente na primeira execução.
@@ -324,18 +415,22 @@ A pasta `%TEMP%\BIA` é criada automaticamente na primeira execução.
 
 ## Solução de problemas
 
-- **“Script desabilitado” / política de execução:**  
-  Em PowerShell **como Administrador**:  
+- **“Script desabilitado” / política de execução**  
+  Use o **BIA-Launcher.bat** (ele usa `-ExecutionPolicy Bypass`).  
+  Ou, em PowerShell **como Administrador**:  
   `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
 
-- **Janela fecha rápido e não vejo erro:**  
-  Defina `BIA_DEBUG=1` antes de executar (no prompt de comando ou no próprio launcher) e execute de novo. Ao sair, o BIA pede ENTER para fechar.
+- **Janela fecha rápido e não vejo erro**  
+  Defina `BIA_DEBUG=1` antes de executar (no prompt de comando ou no próprio launcher) e execute de novo. Ao sair, o BIA pode pedir ENTER para fechar.
 
-- **Algumas opções não funcionam:**  
+- **Algumas opções não funcionam**  
   Várias funções (SFC, ponto de restauração, serviços, GPO, etc.) exigem **execução como Administrador**. Execute o `BIA-Launcher.bat` ou o PowerShell “Como administrador”.
 
-- **IP não aparece no cabeçalho:**  
+- **IP não aparece no cabeçalho**  
   O BIA usa o primeiro IPv4 não loopback. Se houver apenas interfaces virtuais ou VPN, o IP exibido pode ser de uma delas.
+
+- **Opções de desempenho (Melhor aparência / Melhor desempenho) não aplicam**  
+  Em alguns Windows o efeito só aparece após reiniciar o Explorer ou fazer logoff. Se a alteração por registro falhar, use a opção [1] em Utilitários > h para abrir o painel do Windows e escolher manualmente.
 
 ---
 

@@ -18,26 +18,6 @@ try {
     $script:ScreenWidth = 80
 }
 
-# ---- Tela cheia (maximizar janela do console) ----
-function Invoke-BIAMaximizeWindow {
-    try {
-        $code = @'
-[DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr GetConsoleWindow();
-[DllImport("user32.dll", SetLastError = true)] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-'@
-        Add-Type -Name NativeWin -Namespace BIA -MemberDefinition $code -ErrorAction SilentlyContinue
-        $hwnd = [BIA.NativeWin]::GetConsoleWindow()
-        if ($hwnd -ne [IntPtr]::Zero) {
-            [BIA.NativeWin]::ShowWindow($hwnd, 3) | Out-Null  # 3 = SW_MAXIMIZE
-            Start-Sleep -Milliseconds 200
-        }
-    } catch { }
-    try {
-        $script:ScreenWidth = [Math]::Min(160, $Host.UI.RawUI.WindowSize.Width)
-        if ($script:ScreenWidth -lt 80) { $script:ScreenWidth = 80 }
-    } catch { }
-}
-
 # ---- Spinner (animacao rotativa durante operacao) ----
 $script:BIA_SpinnerChars = @('|', '/', '-', '\')
 function Show-BIASpinner {

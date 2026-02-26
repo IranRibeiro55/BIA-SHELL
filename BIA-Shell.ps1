@@ -2,6 +2,7 @@
 # BIA Shell v8 - CoreSafe (PowerShell)
 # Animacoes, transicoes, novas funcionalidades, loading em telas
 
+$script:BIA_Version = '8.0'
 $ErrorActionPreference = 'Continue'
 $script:WorkDir = Join-Path $env:TEMP 'BIA'
 $script:LogFile = Join-Path $script:WorkDir 'BIA_Acoes.log'
@@ -9,12 +10,56 @@ if (-not (Test-Path $script:WorkDir)) { New-Item -ItemType Directory -Path $scri
 
 $uiPath = Join-Path $PSScriptRoot 'BIA-UI.ps1'
 if (Test-Path $uiPath) { . $uiPath }
-try { Invoke-BIAMaximizeWindow } catch { }
+
+# ---- Escolha de idioma (antes de tudo) ----
+$script:BIA_Lang = 'pt'
+$langPath = Join-Path $PSScriptRoot 'BIA-Lang.ps1'
+if (Test-Path $langPath) { . $langPath }
+
+function Show-BIALanguageSelection {
+    Clear-Host
+    $w = 70
+    $line = '=' * $w
+    Write-Host $line -ForegroundColor Cyan
+    Write-Host ''
+    $msg = Get-BIAStr 'lang_choose'
+    $pad = [Math]::Max(0, ($w - [Math]::Min($msg.Length, $w)) / 2)
+    Write-Host (' ' * [int]$pad) -NoNewline
+    Write-Host $msg -ForegroundColor White
+    Write-Host ''
+    Write-Host "  [1] $(Get-BIAStr 'lang_1')     [2] $(Get-BIAStr 'lang_2')     [3] $(Get-BIAStr 'lang_3')" -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host $line -ForegroundColor Cyan
+    $r = (Read-Host '  1, 2 or 3').Trim()
+    if ($r -eq '2') { $script:BIA_Lang = 'en' }
+    elseif ($r -eq '3') { $script:BIA_Lang = 'es' }
+    else { $script:BIA_Lang = 'pt' }
+}
+Show-BIALanguageSelection
 
 function Write-BIALog {
     param([string]$Msg)
     $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     "$stamp | $Msg" | Out-File -FilePath $script:LogFile -Append -Encoding utf8
+}
+
+function Write-BIALogAction {
+    param([string]$Menu, [string]$Option, [string]$Description = '')
+    $msg = if ($Description) { "Menu $Menu > opcao $Option ($Description)" } else { "Menu $Menu > opcao $Option" }
+    Write-BIALog $msg
+}
+
+function Invoke-BIAVersionCheck {
+    try {
+        $r = Invoke-RestMethod -Uri 'https://api.github.com/repos/IranRibeiro55/BIA-SHELL/releases/latest' -TimeoutSec 5 -ErrorAction Stop
+        $latest = ($r.tag_name -replace '^v', '').Trim()
+        $cur = $script:BIA_Version
+        if ($latest -and $cur -and ([version]$latest) -gt ([version]$cur)) {
+            Write-Host ''
+            Write-Host "  [ BIA ] $((Get-BIAStr 'new_version') -f $latest, $cur, $r.html_url)" -ForegroundColor $BIA_Theme.Warning
+            Write-Host ''
+        }
+    } catch { }
 }
 
 # ---- IP rapido para o header ----
@@ -34,7 +79,7 @@ function Get-BIAWelcomeData {
     $h = @{}
     $h['Usuario'] = $env:USERNAME
     $h['Computador'] = $env:COMPUTERNAME
-    if ($env:USERDNSDOMAIN) { $h['Dominio AD'] = $env:USERDNSDOMAIN } else { $h['Dominio AD'] = '(grupo de trabalho / sem AD)' }
+    if ($env:USERDNSDOMAIN) { $h['Dominio AD'] = $env:USERDNSDOMAIN } else { $h['Dominio AD'] = (Get-BIAStr 'no_ad') }
     $os = Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue
     if ($os) {
         $h['SO'] = $os.Caption.Trim()
@@ -84,22 +129,14 @@ function Get-BIAWelcomeData {
 
 function Get-BIAGreeting {
     $h = (Get-Date).Hour
-    if ($h -ge 5 -and $h -lt 12) { return 'Bom dia' }
-    if ($h -ge 12 -and $h -lt 18) { return 'Boa tarde' }
-    return 'Boa noite'
+    if ($h -ge 5 -and $h -lt 12) { return (Get-BIAStr 'greeting_morning') }
+    if ($h -ge 12 -and $h -lt 18) { return (Get-BIAStr 'greeting_afternoon') }
+    return (Get-BIAStr 'greeting_evening')
 }
 
 function Get-BIAAgentTip {
-    $tips = @(
-        'Dica: Use o menu 8 para um diagnostico rapido da maquina.',
-        'Dica: Playbooks (menu 6) automatizam PC lento, rede e impressora.',
-        'Dica: Azure sem modulo? O BIA instala o Az automaticamente na opcao 1.',
-        'Dica: Exporte um pacote completo do sistema em Informacoes > Exportar.',
-        'Dica: R = sempre volta ao resumo e ao inicio.',
-        'Dica: Impressoras travadas? Menu 6 > Impressora ou menu 9 > Limpar fila.',
-        'Dica: Menu 12 reune nslookup, whoami, Defender, DISM, bateria, clipboard, hash, WSL...'
-    )
-    $tips[(Get-Random -Maximum $tips.Count)]
+    $tips = @('tip_1','tip_2','tip_3','tip_4','tip_5','tip_6','tip_7')
+    Get-BIAStr $tips[(Get-Random -Maximum $tips.Count)]
 }
 
 function Show-BIAHomeScreen {
@@ -117,59 +154,48 @@ function Show-BIAHomeScreen {
     Write-Host ''
     $pad2 = [Math]::Max(0, ($ScreenWidth - 42) / 2)
     Write-Host (' ' * [int]$pad2) -NoNewline
-    Show-BIATyping -Text ' Como posso ajudar? (ENTER para ver o menu) ' -DelayMs 25 -NoNewline -Color Accent
+    Show-BIATyping -Text (Get-BIAStr 'help_prompt') -DelayMs 25 -NoNewline -Color Accent
     Write-Host ''
     Read-Host
 }
 
 function Show-BIAWelcomeDashboard {
     $data = Get-BIAWelcomeData
-    $n = { param($k) if ($data.ContainsKey($k) -and $data[$k]) { $data[$k] } else { 'N/A' } }
+    $na = Get-BIAStr 'N/A'
+    $n = { param($k) if ($data.ContainsKey($k) -and $data[$k]) { $data[$k] } else { $na } }
     $lines = @()
-    $lines += "  Usuario      : $(& $n 'Usuario')"
-    $lines += "  Computador   : $(& $n 'Computador')"
-    $lines += "  Dominio AD   : $(& $n 'Dominio AD')"
-    $lines += "  SO           : $(& $n 'SO')"
-    $lines += "  Versao       : $(& $n 'Versao')"
-    $lines += "  Uptime       : $(& $n 'Uptime')"
-    $lines += "  Fabricante   : $(& $n 'Fabricante')"
-    $lines += "  Modelo       : $(& $n 'Modelo')"
-    $lines += "  RAM          : $(& $n 'RAM')"
-    $lines += "  Disco        :"
+    $lines += "  $((Get-BIAStr 'lbl_user').PadRight(12)): $(& $n 'Usuario')"
+    $lines += "  $((Get-BIAStr 'lbl_computer').PadRight(12)): $(& $n 'Computador')"
+    $lines += "  $((Get-BIAStr 'lbl_domain').PadRight(12)): $(& $n 'Dominio AD')"
+    $lines += "  $((Get-BIAStr 'lbl_os').PadRight(12)): $(& $n 'SO')"
+    $lines += "  $((Get-BIAStr 'lbl_version').PadRight(12)): $(& $n 'Versao')"
+    $lines += "  $((Get-BIAStr 'lbl_uptime').PadRight(12)): $(& $n 'Uptime')"
+    $lines += "  $((Get-BIAStr 'lbl_manufacturer').PadRight(12)): $(& $n 'Fabricante')"
+    $lines += "  $((Get-BIAStr 'lbl_model').PadRight(12)): $(& $n 'Modelo')"
+    $lines += "  $((Get-BIAStr 'lbl_ram').PadRight(12)): $(& $n 'RAM')"
+    $lines += "  $((Get-BIAStr 'lbl_disk').PadRight(12)):"
     $discoVal = & $n 'Disco'
-    if ($discoVal -and $discoVal -ne 'N/A') { foreach ($dl in ($discoVal -split "`n")) { $lines += $dl } } else { $lines += "  (N/A)" }
-    $lines += "  IP(s)        : $(& $n 'IP(s)')"
-    $lines += "  Data/Hora    : $(& $n 'Data/Hora')"
-    Write-BIAInfoPanel -Title ' Resumo da maquina (usuario, AD, RAM, disco, IP) ' -Lines $lines
+    if ($discoVal -and $discoVal -ne $na) { foreach ($dl in ($discoVal -split "`n")) { $lines += $dl } } else { $lines += "  ($na)" }
+    $lines += "  $((Get-BIAStr 'lbl_ip').PadRight(12)): $(& $n 'IP(s)')"
+    $lines += "  $((Get-BIAStr 'lbl_datetime').PadRight(12)): $(& $n 'Data/Hora')"
+    Write-BIAInfoPanel -Title (Get-BIAStr 'dashboard_title') -Lines $lines
 }
 
 # ---- Menu principal ----
 function Show-MainMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
     Write-BIAHeader -IP $script:BIA_PrimaryIP
-    Write-BIABox -Title ' MENU PRINCIPAL ' -Lines @(
-        '  1) Usuario - Atendimento rapido',
-        '  2) TI - Ferramentas administrativas',
-        '  3) Servidor - Active Directory',
-        '  4) Rede e Seguranca',
-        '  5) Utilitarios',
-        '  6) Playbooks automaticos',
-        '  7) Informacoes do sistema',
-        '  8) Diagnostico rapido (health check)',
-        '  9) Impressoras',
-        ' 10) Azure (Connect / CLI)',
-        ' 11) Instalar aplicativos (winget)',
-        ' 12) Comandos e ferramentas (CMD / PowerShell)',
-        '  R) Ver resumo da maquina (voltar ao inicio)',
-        '  S) Sobre / Creditos',
-        '  0) Sair'
+    Write-BIABox -Title (Get-BIAStr 'main_title') -Lines @(
+        (Get-BIAStr 'main_1'), (Get-BIAStr 'main_2'), (Get-BIAStr 'main_3'), (Get-BIAStr 'main_4'), (Get-BIAStr 'main_5'),
+        (Get-BIAStr 'main_6'), (Get-BIAStr 'main_7'), (Get-BIAStr 'main_8'), (Get-BIAStr 'main_9'), (Get-BIAStr 'main_10'),
+        (Get-BIAStr 'main_11'), (Get-BIAStr 'main_12'), (Get-BIAStr 'main_R'), (Get-BIAStr 'main_S'), (Get-BIAStr 'main_0')
     )
     Write-Host ''
     $tip = Get-BIAAgentTip
     Write-Host "  " -NoNewline
     Write-Host $tip -ForegroundColor $BIA_Theme.Muted
     Write-Host ''
-    $prompts = @('O que deseja fazer?', 'O que vamos fazer agora?', 'Em que posso ajudar?', 'Qual opcao?')
+    $prompts = @((Get-BIAStr 'prompt_what'), (Get-BIAStr 'prompt_what_now'), (Get-BIAStr 'prompt_help'), (Get-BIAStr 'prompt_option'))
     $prompt = $prompts[(Get-Random -Maximum $prompts.Count)]
     $op = (Read-Host "  $prompt").Trim().ToUpper()
     switch ($op) {
@@ -185,7 +211,7 @@ function Show-MainMenu {
         '10' { Show-BIATransition -Title ' Azure ' -Milliseconds 400; Show-AzureMenu }
         '11' { Show-BIATransition -Title ' Instalar aplicativos ' -Milliseconds 400; Show-InstallAppsMenu }
         '12' { Show-BIATransition -Title ' Comandos e ferramentas ' -Milliseconds 400; Show-ToolsMenu }
-        'R' { Write-Host ''; $padR = [Math]::Max(0, ($ScreenWidth - 22) / 2); Write-Host (' ' * [int]$padR) -NoNewline; Show-BIATyping -Text 'Voltando ao inicio...' -DelayMs 30 -Color Accent; Start-Sleep -Milliseconds 400; Show-BIAHomeScreen; Show-MainMenu }
+        'R' { Write-Host ''; $padR = [Math]::Max(0, ($ScreenWidth - 22) / 2); Write-Host (' ' * [int]$padR) -NoNewline; Show-BIATyping -Text (Get-BIAStr 'returning') -DelayMs 30 -Color Accent; Start-Sleep -Milliseconds 400; Show-BIAHomeScreen; Show-MainMenu }
         'S' { Show-BIAAbout; Invoke-BIAPause; Show-MainMenu }
         '0' { Exit-BIA }
         default { Show-MainMenu }
@@ -196,52 +222,40 @@ function Show-BIAAbout {
     Write-BIAHeader -IP $script:BIA_PrimaryIP
     $pad = [Math]::Max(0, ($ScreenWidth - 28) / 2)
     Write-Host (' ' * [int]$pad) -NoNewline
-    Show-BIATyping -Text ' SOBRE O BIA SHELL ' -DelayMs 25 -Color Title
+    Show-BIATyping -Text (Get-BIAStr 'about_title') -DelayMs 25 -Color Title
     Write-Host ''
-    Write-BIABox -Title ' SOBRE O BIA SHELL ' -Lines @(
-        '  BIA Shell v8 - CoreSafe',
-        '  Assistente para TI e Suporte',
-        '  ',
-        '  Desenvolvido por Iran Ribeiro',
-        '  GitHub: https://github.com/IranRibeiro55',
-        '  ',
-        '  PowerShell | Menus | Diagnostico | Playbooks'
+    Write-BIABox -Title (Get-BIAStr 'about_title') -Lines @(
+        (Get-BIAStr 'about_line1'), (Get-BIAStr 'about_line2'), '  ',
+        (Get-BIAStr 'about_dev'), (Get-BIAStr 'about_github'), '  ',
+        (Get-BIAStr 'about_footer')
     )
     Write-Host ''
     $pad2 = [Math]::Max(0, ($ScreenWidth - 45) / 2)
     Write-Host (' ' * [int]$pad2) -NoNewline
-    Show-BIATyping -Text 'Obrigado por usar o BIA. Qualquer duvida, consulte o README.' -DelayMs 20 -Color Muted
+    Show-BIATyping -Text (Get-BIAStr 'about_thanks') -DelayMs 20 -Color Muted
     Write-Host ''
 }
 
 # ---------- USUARIO ----------
 function Show-UserMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Usuario - Atendimento rapido ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'user_subtitle') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  [1] Limpeza basica (TEMP + Windows\Temp)',
-        '  [2] Diagnostico de internet (ping/flush/renew)',
-        '  [3] ipconfig /all',
-        '  [4] Flush DNS',
-        '  [5] Windows Update (painel)',
-        '  [6] Agendar CHKDSK C: /F /R',
-        '  [7] Abrir pasta do usuario',
-        '  [8] Abrir Este Computador',
-        '  [9] Reset caches (Teams/Office/Edge/Chrome)',
-        '  [a] Abrir Documentos / Desktop / Downloads',
-        '  [0] Voltar'
+        (Get-BIAStr 'user_1'), (Get-BIAStr 'user_2'), (Get-BIAStr 'user_3'), (Get-BIAStr 'user_4'), (Get-BIAStr 'user_5'),
+        (Get-BIAStr 'user_6'), (Get-BIAStr 'user_7'), (Get-BIAStr 'user_8'), (Get-BIAStr 'user_9'), (Get-BIAStr 'user_a'),
+        (Get-BIAStr 'user_0')
     )
-    $op = (Read-Host '  Escolha').Trim().ToLower()
+    $op = (Read-Host "  $(Get-BIAStr 'choice')").Trim().ToLower()
     switch ($op) {
-        '1' { Invoke-UserClean; Write-BIALog 'Usuario: Limpeza basica'; Invoke-BIAPause; Show-UserMenu }
-        '2' { Invoke-UserNet; Write-BIALog 'Usuario: Diagnostico rede'; Invoke-BIAPause; Show-UserMenu }
+        '1' { Invoke-UserClean; Write-BIALogAction '1' '1' 'Limpeza basica'; Invoke-BIAPause; Show-UserMenu }
+        '2' { Invoke-UserNet; Write-BIALogAction '1' '2' 'Diagnostico rede'; Invoke-BIAPause; Show-UserMenu }
         '3' { Show-BIALoadingShort -Message 'Obtendo ipconfig...' -Steps 8; ipconfig /all | More; Invoke-BIAPause; Show-UserMenu }
-        '4' { Show-BIALoadingShort -Message 'Flush DNS...' -Steps 5; ipconfig /flushdns | Out-Null; Write-BIAMessage 'DNS cache limpo.' Success; Invoke-BIAPause; Show-UserMenu }
+        '4' { Show-BIALoadingShort -Message 'Flush DNS...' -Steps 5; ipconfig /flushdns | Out-Null; Write-BIAMessage (Get-BIAStr 'msg_dns_cleaned') Success; Write-BIALogAction '1' '4' 'Flush DNS'; Invoke-BIAPause; Show-UserMenu }
         '5' { Start-Process 'control.exe' -ArgumentList '/name Microsoft.WindowsUpdate'; Write-BIAMessage 'Abrindo Windows Update...' Info; Start-Sleep -Seconds 2; Show-UserMenu }
         '6' { & chkdsk C: /F /R; Write-BIAMessage 'Reinicie o PC para aplicar.' Warning; Invoke-BIAPause; Show-UserMenu }
         '7' { Start-Process explorer -ArgumentList $env:USERPROFILE; Write-BIAMessage 'Abrindo pasta do usuario.' Info; Show-UserMenu }
         '8' { Start-Process explorer -ArgumentList 'shell:::{20D04FE0-3AEA-1069-A2D8-08002B30309D}'; Write-BIAMessage 'Abrindo Este Computador.' Info; Show-UserMenu }
-        '9' { Invoke-UserCache; Write-BIALog 'Usuario: Reset caches'; Invoke-BIAPause; Show-UserMenu }
+        '9' { Invoke-UserCache; Write-BIALogAction '1' '9' 'Reset caches'; Invoke-BIAPause; Show-UserMenu }
         'a' { Write-Host '  [1] Documentos  [2] Desktop  [3] Downloads' -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process "$env:USERPROFILE\Documents" }; if ($r -eq '2') { Start-Process "$env:USERPROFILE\Desktop" }; if ($r -eq '3') { Start-Process "$env:USERPROFILE\Downloads" }; Show-UserMenu }
         '0' { Show-MainMenu }
         default { Show-UserMenu }
@@ -495,6 +509,7 @@ function Show-UtilsMenu {
         '  [e] Relatorio de bateria (powercfg)',
         '  [f] Ativacao do Windows (status)',
         '  [g] Painelis: Programas | Rede | Energia | Som | Data/hora | Credenciais',
+        '  [h] Opcoes de desempenho (aparencia vs desempenho)',
         '  [0] Voltar'
     )
     $op = (Read-Host '  Escolha').Trim().ToLower()
@@ -515,8 +530,52 @@ function Show-UtilsMenu {
         'e' { $desk = [Environment]::GetFolderPath('Desktop'); Push-Location $desk; powercfg /batteryreport 2>$null; Pop-Location; $out = Join-Path $desk 'battery-report.html'; if (Test-Path $out) { Start-Process $out; Write-BIAMessage "Relatorio: $out" Success } else { Write-BIAMessage 'Relatorio no diretorio atual.' Info }; Invoke-BIAPause; Show-UtilsMenu }
         'f' { try { Get-WmiObject -Query "SELECT * FROM SoftwareLicensingProduct WHERE ApplicationId='55c92734-d682-4d71-983e-d6ec3f46059c' AND LicenseStatus=1" -ErrorAction Stop | Select-Object Description, LicenseStatus | Format-List } catch { cscript //nologo "$env:SystemRoot\System32\slmgr.vbs" /dlv 2>$null }; Invoke-BIAPause; Show-UtilsMenu }
         'g' { Write-Host '  [1] Programas  [2] Rede  [3] Energia  [4] Som  [5] Data/hora  [6] Credenciais' -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process appwiz.cpl }; if ($r -eq '2') { Start-Process ncpa.cpl }; if ($r -eq '3') { Start-Process powercfg.cpl }; if ($r -eq '4') { Start-Process mmsys.cpl }; if ($r -eq '5') { Start-Process timedate.cpl }; if ($r -eq '6') { Start-Process 'control.exe' -ArgumentList '/name', 'Microsoft.CredentialManager' }; Show-UtilsMenu }
+        'h' { Invoke-BIAPerformanceOptions; Show-UtilsMenu }
         '0' { Show-MainMenu }
         default { Show-UtilsMenu }
+    }
+}
+
+function Invoke-BIAPerformanceOptions {
+    Write-Host ''
+    Write-Host '  [1] Abrir painel de desempenho do Windows (escolher manualmente)' -ForegroundColor $BIA_Theme.Menu
+    Write-Host '  [2] Definir: Melhor aparência' -ForegroundColor $BIA_Theme.Menu
+    Write-Host '  [3] Definir: Melhor desempenho' -ForegroundColor $BIA_Theme.Menu
+    Write-Host '  [0] Voltar' -ForegroundColor $BIA_Theme.Menu
+    Write-Host ''
+    $r = (Read-Host '  Escolha').Trim()
+    if ($r -eq '1') {
+        $perf = "$env:SystemRoot\System32\systempropertiesperformance.exe"
+        if (Test-Path $perf) { Start-Process $perf; Write-BIAMessage 'Abrindo Opcoes de Desempenho.' Info }
+        else {
+            Start-Process 'control.exe' -ArgumentList 'sysdm.cpl,,3'
+            Write-BIAMessage 'Abrindo Propriedades do Sistema > Avancado. Clique em "Configuracoes" em Desempenho.' Info
+        }
+        return
+    }
+    if ($r -eq '2') {
+        try {
+            $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
+            if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+            Set-ItemProperty -Path $key -Name 'VisualFXSetting' -Value 1 -Type DWord -Force -ErrorAction Stop
+            Write-BIAMessage 'Definido para Melhor aparência. Pode ser necessario reiniciar o Explorer ou fazer logoff.' Success
+        } catch {
+            Write-BIAMessage 'Nao foi possivel alterar. Abra o painel (opcao 1) e escolha manualmente.' Warning
+        }
+        Invoke-BIAPause
+        return
+    }
+    if ($r -eq '3') {
+        try {
+            $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
+            if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+            Set-ItemProperty -Path $key -Name 'VisualFXSetting' -Value 0 -Type DWord -Force -ErrorAction Stop
+            Write-BIAMessage 'Definido para Melhor desempenho. Pode ser necessario reiniciar o Explorer ou fazer logoff.' Success
+        } catch {
+            Write-BIAMessage 'Nao foi possivel alterar. Abra o painel (opcao 1) e escolha manualmente.' Warning
+        }
+        Invoke-BIAPause
+        return
     }
 }
 
@@ -551,21 +610,67 @@ function Invoke-OptimizeVolumes {
 # ---------- PLAYBOOKS ----------
 function Show-PlaybooksMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Playbooks automaticos ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'play_subtitle') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  [1] PC lento (temp + flush + renew)',
-        '  [2] Sem internet (winsock/ip + flush + renew)',
-        '  [3] Impressora travada (spool)',
-        '  [0] Voltar'
+        (Get-BIAStr 'play_1'), (Get-BIAStr 'play_2'), (Get-BIAStr 'play_3'), (Get-BIAStr 'play_4'), (Get-BIAStr 'play_5'),
+        (Get-BIAStr 'play_0')
     )
-    $op = (Read-Host '  Escolha').Trim()
+    $op = (Read-Host "  $(Get-BIAStr 'choice')").Trim()
     switch ($op) {
-        '1' { Invoke-PlaybookSlow; Write-BIALog 'Playbook: PC lento'; Invoke-BIAPause; Show-PlaybooksMenu }
-        '2' { Invoke-PlaybookNet; Write-BIALog 'Playbook: Sem internet'; Invoke-BIAPause; Show-PlaybooksMenu }
-        '3' { Invoke-PlaybookPrint; Write-BIALog 'Playbook: Impressora'; Invoke-BIAPause; Show-PlaybooksMenu }
+        '1' { Invoke-PlaybookSlow; Write-BIALogAction '6' '1' 'PC lento'; Invoke-BIAPause; Show-PlaybooksMenu }
+        '2' { Invoke-PlaybookNet; Write-BIALogAction '6' '2' 'Sem internet'; Invoke-BIAPause; Show-PlaybooksMenu }
+        '3' { Invoke-PlaybookPrint; Write-BIALogAction '6' '3' 'Impressora'; Invoke-BIAPause; Show-PlaybooksMenu }
+        '4' { Invoke-PlaybookNoSound; Write-BIALogAction '6' '4' 'Sem som'; Invoke-BIAPause; Show-PlaybooksMenu }
+        '5' { Invoke-PlaybookRebootCheck; Write-BIALogAction '6' '5' 'Verificar reinicio'; Invoke-BIAPause; Show-PlaybooksMenu }
         '0' { Show-MainMenu }
         default { Show-PlaybooksMenu }
     }
+}
+
+function Invoke-PlaybookNoSound {
+    Write-BIAMessage 'Verificando audio (dispositivo, servico, volume)...' Info
+    Write-BIAProgressBar -Message 'Servico Windows Audio (Audiosrv)' -TotalSteps 4
+    $aud = Get-Service -Name Audiosrv -ErrorAction SilentlyContinue
+    if ($aud) {
+        $st = $aud.Status.ToString()
+        Write-Host "    Audiosrv: $st" -ForegroundColor $(if ($aud.Status -eq 'Running') { 'Green' } else { 'Yellow' })
+        if ($aud.Status -ne 'Running') {
+            Write-BIAMessage 'Iniciando servico de audio...' Info
+            Start-Service -Name Audiosrv -ErrorAction SilentlyContinue
+        }
+    } else { Write-Host '    Audiosrv: N/A' -ForegroundColor DarkGray }
+    Write-BIAProgressBar -Message 'Dispositivos de audio' -TotalSteps 4
+    Get-WmiObject Win32_SoundDevice -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "    $($_.Name)" -ForegroundColor $BIA_Theme.Menu }
+    Write-BIAMessage (Get-BIAStr 'som_verificar') Info
+    Write-BIAMessage (Get-BIAStr 'som_concluido') Success
+}
+
+function Invoke-PlaybookRebootCheck {
+    Write-BIAMessage 'Verificando pendencia de reinicio e uptime...' Info
+    $reboot = $false
+    try {
+        $null = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction Stop
+        $reboot = $true
+    } catch { }
+    if (-not $reboot) {
+        try {
+            $null = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction Stop
+            $reboot = $true
+        } catch { }
+    }
+    $os = Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue
+    $uptimeStr = 'N/A'
+    if ($os) {
+        $boot = $os.ConvertToDateTime($os.LastBootUpTime)
+        $uptime = (Get-Date) - $boot
+        $uptimeStr = "$($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m"
+        Write-Host "  Ligado desde: $boot" -ForegroundColor $BIA_Theme.Menu
+        Write-Host "  Uptime: $uptimeStr" -ForegroundColor $BIA_Theme.Success
+    }
+    Write-Host ''
+    if ($reboot) { Write-BIAMessage (Get-BIAStr 'pendencia_sim') Warning }
+    else { Write-BIAMessage (Get-BIAStr 'pendencia_nao') Success }
+    Write-BIAMessage ((Get-BIAStr 'uptime_atual') -f $uptimeStr) Info
 }
 
 function Invoke-PlaybookSlow {
@@ -605,23 +710,51 @@ function Invoke-PlaybookPrint {
 # ---------- SYS INFO ----------
 function Show-SysInfoMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Informacoes do sistema ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'sysinfo_subtitle') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  [1] Resumo na tela (detalhado)',
-        "  [2] Exportar pacote completo para TXT (em $env:TEMP\BIA)",
-        '  [3] Uptime do sistema',
-        '  [4] Ver dashboard (usuario, maquina, AD, RAM, disco, IP)',
-        '  [0] Voltar'
+        (Get-BIAStr 'sysinfo_1'), (Get-BIAStr 'sysinfo_2'), (Get-BIAStr 'sysinfo_3'), (Get-BIAStr 'sysinfo_4'),
+        (Get-BIAStr 'sysinfo_5'), (Get-BIAStr 'sysinfo_0')
     )
-    $op = (Read-Host '  Escolha').Trim()
+    $op = (Read-Host "  $(Get-BIAStr 'choice')").Trim()
     switch ($op) {
-        '1' { Show-BIALoadingShort -Message 'Coletando resumo...' -Steps 12; Show-SysSummary; Invoke-BIAPause; Show-SysInfoMenu }
-        '2' { Export-SysInfo; Invoke-BIAPause; Show-SysInfoMenu }
-        '3' { Show-SysUptime; Invoke-BIAPause; Show-SysInfoMenu }
-        '4' { Show-BIALoadingShort -Message 'Atualizando dados...' -Steps 6; Show-BIAWelcomeDashboard; Invoke-BIAPause; Show-SysInfoMenu }
+        '1' { Show-BIALoadingShort -Message 'Coletando resumo...' -Steps 12; Show-SysSummary; Write-BIALogAction '7' '1' 'Resumo tela'; Invoke-BIAPause; Show-SysInfoMenu }
+        '2' { Export-SysInfo; Write-BIALogAction '7' '2' 'Export completo'; Invoke-BIAPause; Show-SysInfoMenu }
+        '3' { Show-SysUptime; Write-BIALogAction '7' '3' 'Uptime'; Invoke-BIAPause; Show-SysInfoMenu }
+        '4' { Show-BIALoadingShort -Message 'Atualizando dados...' -Steps 6; Show-BIAWelcomeDashboard; Write-BIALogAction '7' '4' 'Dashboard'; Invoke-BIAPause; Show-SysInfoMenu }
+        '5' { Export-BIAOnePageSummary; Write-BIALogAction '7' '5' 'Resumo 1 pagina'; Invoke-BIAPause; Show-SysInfoMenu }
         '0' { Show-MainMenu }
         default { Show-SysInfoMenu }
     }
+}
+
+function Export-BIAOnePageSummary {
+    $data = Get-BIAWelcomeData
+    $reboot = $false
+    try { $null = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction Stop; $reboot = $true } catch { }
+    if (-not $reboot) { try { $null = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction Stop; $reboot = $true } catch { } }
+    $rebootStr = if ($reboot) { 'Sim' } else { 'Nao' }
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $out = Join-Path $script:WorkDir "Resumo_${env:COMPUTERNAME}_$stamp.txt"
+    $lblReboot = if ($script:BIA_Lang -eq 'en') { 'Reboot pending' } elseif ($script:BIA_Lang -eq 'es') { 'Reinicio pendiente' } else { 'Pendencia de reinicio' }
+    $lines = @(
+        "=== BIA Resumo - $env:COMPUTERNAME - $stamp ===",
+        "$(Get-BIAStr 'lbl_user'): $($data['Usuario'])",
+        "$(Get-BIAStr 'lbl_computer'): $($data['Computador'])",
+        "$(Get-BIAStr 'lbl_domain'): $($data['Dominio AD'])",
+        "$(Get-BIAStr 'lbl_os'): $($data['SO'])",
+        "$(Get-BIAStr 'lbl_version'): $($data['Versao'])",
+        "$(Get-BIAStr 'lbl_uptime'): $($data['Uptime'])",
+        "$(Get-BIAStr 'lbl_manufacturer'): $($data['Fabricante'])",
+        "$(Get-BIAStr 'lbl_model'): $($data['Modelo'])",
+        "$(Get-BIAStr 'lbl_ram'): $($data['RAM'])",
+        "$(Get-BIAStr 'lbl_disk'): $($data['Disco'])",
+        "$(Get-BIAStr 'lbl_ip'): $($data['IP(s)'])",
+        "${lblReboot}: $rebootStr",
+        "$(Get-BIAStr 'lbl_datetime'): $($data['Data/Hora'])",
+        "=== Fim ==="
+    )
+    $lines | Out-File -FilePath $out -Encoding utf8
+    Write-BIAMessage ((Get-BIAStr 'resumo_salvo') -f $out) Success
 }
 
 function Show-SysSummary {
@@ -1012,22 +1145,16 @@ function Show-InstallAppsMenu {
 }
 
 # ---------- SAIDA ----------
-$script:BIA_FarewellMessages = @(
-    'Se precisar de mim, e so chamar. Ate mais!',
-    'Foi um prazer ajudar. Ate a proxima!',
-    'Qualquer coisa, estarei por aqui. Ate mais!',
-    'Encerrando... Obrigado por usar o BIA. Ate logo!',
-    'Valeu! Quando precisar, e so abrir de novo. Ate!'
-)
 function Exit-BIA {
     Write-BIAHeader -IP $script:BIA_PrimaryIP
-    $farewell = $script:BIA_FarewellMessages[(Get-Random -Maximum $script:BIA_FarewellMessages.Count)]
+    $farewells = @('farewell_1','farewell_2','farewell_3','farewell_4','farewell_5')
+    $farewell = Get-BIAStr $farewells[(Get-Random -Maximum 5)]
     $pad = [Math]::Max(0, ($ScreenWidth - $farewell.Length - 4) / 2)
     Write-Host ''
     Write-Host (' ' * [int]$pad) -NoNewline
     Show-BIATyping -Text "[ BIA ] $farewell" -DelayMs 35 -Color Success
     Write-Host ''
-    $cred = ' Desenvolvido por Iran Ribeiro - https://github.com/IranRibeiro55 '
+    $cred = Get-BIAStr 'credits'
     $pad2 = [Math]::Max(0, ($ScreenWidth - $cred.Length) / 2)
     Write-Host (' ' * [int]$pad2) -NoNewline
     Show-BIATyping -Text $cred -DelayMs 15 -Color Muted
@@ -1044,7 +1171,8 @@ function Exit-BIA {
 $script:BIA_PrimaryIP = Get-BIAPrimaryIP
 try { Show-BIASplash } catch { Write-BIAHeader -IP $script:BIA_PrimaryIP }
 Write-BIAHeader -IP $script:BIA_PrimaryIP
-Show-BIALoadingShort -Message 'Coletando dados da maquina...' -Steps 10
+try { Invoke-BIAVersionCheck } catch { }
+Show-BIALoadingShort -Message (Get-BIAStr 'collecting') -Steps 10
 Show-BIAWelcomeDashboard
 Write-Host ''
 $saudacao = Get-BIAGreeting
@@ -1057,7 +1185,7 @@ Show-BIATyping -Text '!' -DelayMs 80
 Write-Host ''
 $pad2 = [Math]::Max(0, ($ScreenWidth - 42) / 2)
 Write-Host (' ' * [int]$pad2) -NoNewline
-Show-BIATyping -Text ' Como posso ajudar? (ENTER para ver o menu) ' -DelayMs 25 -NoNewline -Color Accent
-Write-Host ''
+Show-BIATyping -Text (Get-BIAStr 'help_prompt') -DelayMs 25 -NoNewline -Color Accent
+    Write-Host ''
 Read-Host
 Show-MainMenu
