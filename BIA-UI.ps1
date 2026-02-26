@@ -1,3 +1,8 @@
+<#
+  BIA Shell - Modulo de Interface (UI)
+  Copyright (c) 2024-2025 Iran Ribeiro. Todos os direitos reservados.
+  Projeto: https://github.com/IranRibeiro55/BIA-SHELL | Nao remova este cabecalho.
+#>
 # BIA Shell - Modulo de Interface (UI) v2
 # Animacoes: spinner, transicoes, loading, progresso, typing
 
@@ -331,17 +336,22 @@ function Write-BIAInfoPanel {
         [string[]]$Lines
     )
     if (-not $Lines -or $Lines.Count -eq 0) { return }
-    $maxLen = ($Lines | ForEach-Object { $_.Length } | Measure-Object -Maximum).Maximum
-    $w = [Math]::Min($maxLen + 4, $ScreenWidth - 4)
+    $maxLen = ($Lines | ForEach-Object { if ($null -eq $_) { 0 } else { $_.Length } } | Measure-Object -Maximum).Maximum
+    if ($null -eq $maxLen) { $maxLen = 0 }
+    $w = [Math]::Max(4, [Math]::Min($maxLen + 4, $ScreenWidth - 4))
+    $colW = [Math]::Max(0, $w - 4)
     $top = '+' + ('-' * ($w - 2)) + '+'
     Write-Host $top -ForegroundColor $BIA_Theme.Header
+    $titleStr = if ($null -eq $Title) { '' } else { $Title.ToString() }
+    $titleStr = $titleStr.Substring(0, [Math]::Min($titleStr.Length, $colW)).PadRight($colW)
     Write-Host '| ' -NoNewline -ForegroundColor $BIA_Theme.Accent
-    Write-Host $Title.PadRight($w - 4) -NoNewline -ForegroundColor $BIA_Theme.Title
+    Write-Host $titleStr -NoNewline -ForegroundColor $BIA_Theme.Title
     Write-Host ' |' -ForegroundColor $BIA_Theme.Accent
     Write-Host $top -ForegroundColor $BIA_Theme.Header
     foreach ($l in $Lines) {
-        $len = [Math]::Min($l.Length, $w - 4)
-        $padded = $l.Substring(0, [Math]::Max(0, $len)).PadRight($w - 4)
+        $str = if ($null -eq $l) { '' } else { $l.ToString() }
+        $len = [Math]::Min($str.Length, $colW)
+        $padded = $str.Substring(0, $len).PadRight($colW)
         Write-Host '| ' -NoNewline -ForegroundColor $BIA_Theme.Accent
         Write-Host $padded -NoNewline -ForegroundColor $BIA_Theme.Menu
         Write-Host ' |' -ForegroundColor $BIA_Theme.Accent

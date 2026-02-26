@@ -1,4 +1,12 @@
 #Requires -Version 5.1
+<#
+  BIA Shell - Assistente para TI e Suporte
+  Copyright (c) 2024-2025 Iran Ribeiro. Todos os direitos reservados.
+
+  Projeto: https://github.com/IranRibeiro55/BIA-SHELL
+  Uso, copia e distribuicao sujeitos ao arquivo LICENSE deste repositorio.
+  Nao remova este cabecalho. Autor: Iran Ribeiro.
+#>
 # BIA Shell v8 - CoreSafe (PowerShell)
 # Animacoes, transicoes, novas funcionalidades, loading em telas
 
@@ -9,12 +17,22 @@ $script:LogFile = Join-Path $script:WorkDir 'BIA_Acoes.log'
 if (-not (Test-Path $script:WorkDir)) { New-Item -ItemType Directory -Path $script:WorkDir -Force | Out-Null }
 
 $uiPath = Join-Path $PSScriptRoot 'BIA-UI.ps1'
-if (Test-Path $uiPath) { . $uiPath }
-
-# ---- Escolha de idioma (antes de tudo) ----
-$script:BIA_Lang = 'pt'
 $langPath = Join-Path $PSScriptRoot 'BIA-Lang.ps1'
-if (Test-Path $langPath) { . $langPath }
+if (-not (Test-Path $uiPath)) {
+    Write-Host '[ BIA ] Erro: BIA-UI.ps1 nao encontrado em:' -ForegroundColor Red
+    Write-Host "  $uiPath" -ForegroundColor Yellow
+    Write-Host '  Mantenha BIA-Shell.ps1, BIA-UI.ps1 e BIA-Lang.ps1 na mesma pasta.' -ForegroundColor Gray
+    exit 1
+}
+if (-not (Test-Path $langPath)) {
+    Write-Host '[ BIA ] Erro: BIA-Lang.ps1 nao encontrado em:' -ForegroundColor Red
+    Write-Host "  $langPath" -ForegroundColor Yellow
+    Write-Host '  Mantenha BIA-Shell.ps1, BIA-UI.ps1 e BIA-Lang.ps1 na mesma pasta.' -ForegroundColor Gray
+    exit 1
+}
+. $uiPath
+$script:BIA_Lang = 'pt'
+. $langPath
 
 function Show-BIALanguageSelection {
     Clear-Host
@@ -528,7 +546,7 @@ function Show-UtilsMenu {
         'c' { $c = Get-Clipboard -ErrorAction SilentlyContinue; if ($c) { $c | Out-String | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  (vazio)' }; Invoke-BIAPause; Show-UtilsMenu }
         'd' { $f = (Read-Host '  Caminho do arquivo').Trim(); if ($f -and (Test-Path $f)) { Get-FileHash -Path $f -Algorithm SHA256 | Format-List } else { Write-BIAMessage 'Arquivo nao encontrado.' Warning }; Invoke-BIAPause; Show-UtilsMenu }
         'e' { $desk = [Environment]::GetFolderPath('Desktop'); Push-Location $desk; powercfg /batteryreport 2>$null; Pop-Location; $out = Join-Path $desk 'battery-report.html'; if (Test-Path $out) { Start-Process $out; Write-BIAMessage "Relatorio: $out" Success } else { Write-BIAMessage 'Relatorio no diretorio atual.' Info }; Invoke-BIAPause; Show-UtilsMenu }
-        'f' { try { Get-WmiObject -Query "SELECT * FROM SoftwareLicensingProduct WHERE ApplicationId='55c92734-d682-4d71-983e-d6ec3f46059c' AND LicenseStatus=1" -ErrorAction Stop | Select-Object Description, LicenseStatus | Format-List } catch { cscript //nologo "$env:SystemRoot\System32\slmgr.vbs" /dlv 2>$null }; Invoke-BIAPause; Show-UtilsMenu }
+        'f' { Show-BIAWindowsActivation; Invoke-BIAPause; Show-UtilsMenu }
         'g' { Write-Host '  [1] Programas  [2] Rede  [3] Energia  [4] Som  [5] Data/hora  [6] Credenciais' -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process appwiz.cpl }; if ($r -eq '2') { Start-Process ncpa.cpl }; if ($r -eq '3') { Start-Process powercfg.cpl }; if ($r -eq '4') { Start-Process mmsys.cpl }; if ($r -eq '5') { Start-Process timedate.cpl }; if ($r -eq '6') { Start-Process 'control.exe' -ArgumentList '/name', 'Microsoft.CredentialManager' }; Show-UtilsMenu }
         'h' { Invoke-BIAPerformanceOptions; Show-UtilsMenu }
         '0' { Show-MainMenu }
@@ -558,7 +576,11 @@ function Invoke-BIAPerformanceOptions {
             $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
             if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
             Set-ItemProperty -Path $key -Name 'VisualFXSetting' -Value 1 -Type DWord -Force -ErrorAction Stop
-            Write-BIAMessage 'Definido para Melhor aparência. Pode ser necessario reiniciar o Explorer ou fazer logoff.' Success
+            $desk = 'HKCU:\Control Panel\Desktop'
+            $maskAppearance = [byte[]](0x9E, 0x3E, 0x07, 0x80, 0x12, 0x00, 0x00, 0x00)
+            Set-ItemProperty -Path $desk -Name 'UserPreferencesMask' -Value $maskAppearance -Type Binary -Force -ErrorAction SilentlyContinue
+            Write-BIAMessage 'Definido para Melhor aparência. Reiniciando Explorer para aplicar...' Success
+            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; Start-Process explorer
         } catch {
             Write-BIAMessage 'Nao foi possivel alterar. Abra o painel (opcao 1) e escolha manualmente.' Warning
         }
@@ -569,8 +591,12 @@ function Invoke-BIAPerformanceOptions {
         try {
             $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects'
             if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
-            Set-ItemProperty -Path $key -Name 'VisualFXSetting' -Value 0 -Type DWord -Force -ErrorAction Stop
-            Write-BIAMessage 'Definido para Melhor desempenho. Pode ser necessario reiniciar o Explorer ou fazer logoff.' Success
+            Set-ItemProperty -Path $key -Name 'VisualFXSetting' -Value 2 -Type DWord -Force -ErrorAction Stop
+            $desk = 'HKCU:\Control Panel\Desktop'
+            $maskPerformance = [byte[]](0x9E, 0x12, 0x03, 0x80, 0x10, 0x00, 0x00, 0x00)
+            Set-ItemProperty -Path $desk -Name 'UserPreferencesMask' -Value $maskPerformance -Type Binary -Force -ErrorAction SilentlyContinue
+            Write-BIAMessage 'Definido para Melhor desempenho. Reiniciando Explorer para aplicar...' Success
+            Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; Start-Process explorer
         } catch {
             Write-BIAMessage 'Nao foi possivel alterar. Abra o painel (opcao 1) e escolha manualmente.' Warning
         }
@@ -605,6 +631,46 @@ function Invoke-OptimizeVolumes {
         try { Optimize-Volume -DriveLetter $v.DriveLetter -ReTrim -ErrorAction Stop } catch { Write-BIAMessage "Pulando $($v.DriveLetter): $_" Warning }
     }
     Write-BIAMessage 'Concluido.' Success
+}
+
+function Show-BIAWindowsActivation {
+    $statusText = @{
+        0 = 'Nao licenciado'
+        1 = 'Licenciado (ativado)'
+        2 = 'Periodo de graca (OOB)'
+        3 = 'Periodo de tolerancia'
+        4 = 'Periodo de graca (nao genuino)'
+        5 = 'Notificacao'
+        6 = 'Periodo de graca estendido'
+    }
+    try {
+        $products = Get-CimInstance -Namespace root/SoftwareLicensing -ClassName SoftwareLicensingProduct -ErrorAction Stop |
+            Where-Object { $_.ApplicationId -match '55c92734-d682-4d71-983e-d6ec3f' -and $_.Description -match 'Windows' }
+        if (-not $products) {
+            $products = Get-CimInstance -Namespace root/SoftwareLicensing -ClassName SoftwareLicensingProduct -ErrorAction Stop |
+                Where-Object { $_.Description -like '*Windows*' } | Select-Object -First 5
+        }
+        if ($products) {
+            foreach ($p in $products) {
+                $desc = $p.Description
+                $code = [int]$p.LicenseStatus
+                $text = $statusText[$code]
+                if ($null -eq $text) { $text = "Codigo $code" }
+                Write-Host "  Produto: $desc" -ForegroundColor $BIA_Theme.Menu
+                $color = if ($code -eq 1) { $BIA_Theme.Success } else { $BIA_Theme.Warning }
+                Write-Host "  Status:  $text" -ForegroundColor $color
+                Write-Host ''
+            }
+            return
+        }
+    } catch { }
+    Write-BIAMessage 'Consultando slmgr.vbs (resumo)...' Info
+    $slmgr = "$env:SystemRoot\System32\slmgr.vbs"
+    if (Test-Path $slmgr) {
+        & cscript //nologo $slmgr /dli 2>&1 | ForEach-Object { Write-Host "  $_" }
+    } else {
+        Write-BIAMessage 'Nao foi possivel verificar ativacao (WMI e slmgr indisponiveis).' Warning
+    }
 }
 
 # ---------- PLAYBOOKS ----------
@@ -995,7 +1061,7 @@ function Show-ToolsMenu {
         'b' { try { $mp = Get-MpComputerStatus -ErrorAction Stop; Write-Host '  Defender: ' -NoNewline; Write-Host $mp.AntivirusEnabled -ForegroundColor $(if ($mp.AntivirusEnabled) { 'Green' } else { 'Yellow' }); Write-Host '  Ultima varredura: ' $mp.QuickScanStartTime; $r = (Read-Host '  Executar scan rapido agora? (s/n)').Trim().ToLower(); if ($r -eq 's') { Start-MpScan -ScanType Quick; Write-BIAMessage 'Scan iniciado.' Success } } catch { Write-BIAMessage 'Defender/Get-MpComputerStatus nao disponivel.' Warning }; Invoke-BIAPause; Show-ToolsMenu }
         'c' { Write-BIAMessage 'DISM /Online /Cleanup-Image /RestoreHealth pode demorar. Requer admin.' Warning; if ((Read-Host '  Continuar? (s/n)').Trim().ToLower() -eq 's') { DISM /Online /Cleanup-Image /RestoreHealth }; Invoke-BIAPause; Show-ToolsMenu }
         'd' { $desk = [Environment]::GetFolderPath('Desktop'); Push-Location $desk; powercfg /batteryreport 2>$null; Pop-Location; $out = Join-Path $desk 'battery-report.html'; if (Test-Path $out) { Write-BIAMessage "Relatorio: $out" Success; Start-Process $out } else { Write-BIAMessage 'Relatorio gerado no diretorio atual.' Info }; Invoke-BIAPause; Show-ToolsMenu }
-        'e' { try { (Get-WmiObject -Query "SELECT * FROM SoftwareLicensingProduct WHERE ApplicationId='55c92734-d682-4d71-983e-d6ec3f46059c' AND LicenseStatus=1" -ErrorAction Stop) | Select-Object Description, LicenseStatus | Format-List } catch { cscript //nologo "$env:SystemRoot\System32\slmgr.vbs" /dlv 2>$null }; Invoke-BIAPause; Show-ToolsMenu }
+        'e' { Show-BIAWindowsActivation; Invoke-BIAPause; Show-ToolsMenu }
         'f' { Start-Process 'perfmon' -ArgumentList '/rel'; Write-BIAMessage 'Abrindo Relatorio de Confiabilidade.' Info; Show-ToolsMenu }
         'g' { $c = Get-Clipboard -ErrorAction SilentlyContinue; if ($c) { Write-Host "  Clipboard ($($c.GetType().Name)): " -ForegroundColor $BIA_Theme.Menu; $c | Out-String | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  (vazio ou nao suportado)' }; Invoke-BIAPause; Show-ToolsMenu }
         'h' { $f = (Read-Host '  Caminho do arquivo').Trim(); if ($f -and (Test-Path $f)) { Get-FileHash -Path $f -Algorithm SHA256 | Format-List } else { Write-BIAMessage 'Arquivo nao encontrado.' Warning }; Invoke-BIAPause; Show-ToolsMenu }
@@ -1186,6 +1252,6 @@ Write-Host ''
 $pad2 = [Math]::Max(0, ($ScreenWidth - 42) / 2)
 Write-Host (' ' * [int]$pad2) -NoNewline
 Show-BIATyping -Text (Get-BIAStr 'help_prompt') -DelayMs 25 -NoNewline -Color Accent
-    Write-Host ''
+Write-Host ''
 Read-Host
 Show-MainMenu

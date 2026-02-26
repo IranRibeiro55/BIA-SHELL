@@ -1,21 +1,28 @@
-MIT License
+BIA SHELL - LICENCA DE USO
 
-Copyright (c) 2026 Iran Ribeiro
+Copyright (c) 2024-2025 Iran Ribeiro. Todos os direitos reservados.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Projeto: https://github.com/IranRibeiro55/BIA-SHELL
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+CONCESSAO DE USO
+Voce pode usar, copiar e distribuir este software para uso pessoal, educacional
+ou profissional, desde que:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+1. ATRIBUICAO OBRIGATORIA
+   - Mantenha em TODOS os arquivos os cabecalhos de copyright (Copyright Iran Ribeiro).
+   - Nao remova ou altere as linhas que identificam o autor e o projeto.
+   - Em qualquer redistribuicao ou derivado, cite o projeto e o autor.
+
+2. RESTRICOES
+   - Nao declare autoria ou propriedade deste trabalho como seu.
+   - Nao remova os avisos de copyright dos arquivos fonte.
+   - Uso comercial ou redistribuicao em outro repositorio deve manter este
+     arquivo LICENSE e os cabecalhos de copyright nos arquivos.
+
+3. SEM GARANTIAS
+   O software e fornecido "como esta", sem garantias. O autor nao se responsabiliza
+   por danos decorrentes do uso.
+
+Ao usar, copiar ou distribuir o BIA Shell, voce aceita estes termos.
+
+Iran Ribeiro - https://github.com/IranRibeiro55

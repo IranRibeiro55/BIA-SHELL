@@ -1,4 +1,8 @@
-# BIA Shell - Idiomas (PT / EN / ES)
+<#
+  BIA Shell - Idiomas (PT / EN / ES)
+  Copyright (c) 2024-2025 Iran Ribeiro. Todos os direitos reservados.
+  Projeto: https://github.com/IranRibeiro55/BIA-SHELL | Nao remova este cabecalho.
+#>
 # Carregado apos o usuario escolher o idioma no inicio
 
 if (-not $script:BIA_Lang) { $script:BIA_Lang = 'pt' }
