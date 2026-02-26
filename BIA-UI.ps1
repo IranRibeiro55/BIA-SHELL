@@ -27,10 +27,11 @@ try {
 $script:BIA_SpinnerChars = @('|', '/', '-', '\')
 function Show-BIASpinner {
     param(
-        [string]$Message = 'Aguarde...',
+        [string]$Message = '',
         [scriptblock]$ScriptBlock,
         [int]$TimeoutSeconds = 0
     )
+    if (-not $Message) { $Message = Get-BIAStr 'msg_wait' }
     $job = $null
     if ($ScriptBlock) {
         $job = Start-Job -ScriptBlock $ScriptBlock
@@ -105,7 +106,8 @@ function Show-BIATyping {
 
 # ---- Agente: "Pensando..." com pontos animados ----
 function Show-BIAThinking {
-    param([string]$Message = 'Pensando...', [int]$Seconds = 2)
+    param([string]$Message = '', [int]$Seconds = 2)
+    if (-not $Message) { $Message = Get-BIAStr 'thinking_msg' }
     $end = (Get-Date).AddSeconds($Seconds)
     $idx = 0
     $dots = @('.', '..', '...', '....')
@@ -137,9 +139,10 @@ function Show-BIAAgentSay {
 # ---- Loading full screen (reutilizavel) ----
 function Show-BIALoading {
     param(
-        [string]$Message = 'Carregando BIA Shell...',
+        [string]$Message = '',
         [int]$Seconds = 2
     )
+    if (-not $Message) { $Message = Get-BIAStr 'loading_init' }
     $steps = 40
     $stepMs = [Math]::Max(50, ($Seconds * 1000) / $steps)
     $barWidth = [Math]::Min(50, $ScreenWidth - 20)
@@ -167,7 +170,8 @@ function Show-BIALoading {
 }
 
 function Show-BIALoadingShort {
-    param([string]$Message = 'Processando...', [int]$Steps = 15)
+    param([string]$Message = '', [int]$Steps = 15)
+    if (-not $Message) { $Message = Get-BIAStr 'processing_msg' }
     $barWidth = 25
     for ($i = 0; $i -le $Steps; $i++) {
         $filled = [int](($i / $Steps) * $barWidth)
@@ -175,9 +179,10 @@ function Show-BIALoadingShort {
         Write-Host "`r  $Message [$bar] $i/$Steps " -NoNewline -ForegroundColor $BIA_Theme.Accent
         Start-Sleep -Milliseconds 80
     }
+    $doneText = Get-BIAStr 'done_msg'
     Write-Host "`r  $Message [" -NoNewline
     Write-Host ('#' * $barWidth) -NoNewline -ForegroundColor $BIA_Theme.Success
-    Write-Host "] OK.    " -ForegroundColor $BIA_Theme.Success
+    Write-Host "] $doneText.    " -ForegroundColor $BIA_Theme.Success
 }
 
 function Write-BIAHeader {
@@ -185,12 +190,13 @@ function Write-BIAHeader {
         [string]$Subtitle = '',
         [string]$IP = ''
     )
-    $Host.UI.RawUI.WindowTitle = 'BIA Shell - CoreSafe'
+    $winTitle = Get-BIAStr 'window_title'
+    $Host.UI.RawUI.WindowTitle = $winTitle
     Clear-Host
     $line = '=' * $ScreenWidth
     Write-Host $line -ForegroundColor $BIA_Theme.Header
-    $title = "  BIA SHELL  "
-    $user = "Usuario: $env:USERNAME  |  Computador: $env:COMPUTERNAME"
+    $title = Get-BIAStr 'header_title'
+    $user = "$(Get-BIAStr 'lbl_user'): $env:USERNAME  |  $(Get-BIAStr 'lbl_computer'): $env:COMPUTERNAME"
     if ($IP) { $user += "  |  IP: $IP" }
     $full = $title + '  ::  ' + $user
     $pad = [Math]::Max(0, ($ScreenWidth - $full.Length) / 2)
@@ -234,29 +240,31 @@ function Write-BIABox {
 
 function Show-BIASplash {
     Clear-Host
-    $art = @'
-   ____  ___    ____
-  | __ )|_ _|  / ___|  ___ _ __ __ _ _ __
-  |  _ \ | |   \___ \ / _ \ '__/ _` | '_ \
-  | |_) || |    ___) |  __/ | | (_| | | | |
-  |____/|___|  |____/ \___|_|  \__,_|_| |_|
-     SHELL v8 - CoreSafe | Seu agente de TI
-  Desenvolvido por Iran Ribeiro
-  https://github.com/IranRibeiro55
-'@
-    $lines = $art -split "`n"
-    $maxLen = ($lines | Measure-Object -Property Length -Maximum).Maximum
-    $pad = [Math]::Max(0, ($ScreenWidth - $maxLen) / 2)
-    $i = 0
-    foreach ($line in $lines) {
-        Write-Host (' ' * [int]$pad) -NoNewline
-        if ($i -eq 7) { Write-Host $line -ForegroundColor $BIA_Theme.Accent }
-        elseif ($i -eq 8) { Write-Host $line -ForegroundColor DarkGray }
-        else { Write-Host $line -ForegroundColor Cyan }
-        $i++
-    }
     Write-Host ''
-    Show-BIALoading -Message ' Inicializando modulos... ' -Seconds 2
+    $nome = 'BIASHELL'
+    $linha = '=' * [Math]::Min(50, $ScreenWidth - 4)
+    $padLinha = [Math]::Max(0, ($ScreenWidth - $linha.Length) / 2)
+    $padNome = [Math]::Max(0, ($ScreenWidth - $nome.Length) / 2)
+    Write-Host (' ' * [int]$padLinha) -NoNewline
+    Write-Host $linha -ForegroundColor $BIA_Theme.Header
+    Write-Host (' ' * [int]$padNome) -NoNewline
+    Write-Host $nome -ForegroundColor Cyan
+    Write-Host (' ' * [int]$padLinha) -NoNewline
+    Write-Host $linha -ForegroundColor $BIA_Theme.Header
+    $sub = Get-BIAStr 'splash_tagline'
+    $padSub = [Math]::Max(0, ($ScreenWidth - $sub.Length) / 2)
+    Write-Host (' ' * [int]$padSub) -NoNewline
+    Write-Host $sub -ForegroundColor $BIA_Theme.Accent
+    $dev = Get-BIAStr 'splash_dev'
+    $padDev = [Math]::Max(0, ($ScreenWidth - $dev.Length) / 2)
+    Write-Host (' ' * [int]$padDev) -NoNewline
+    Write-Host $dev -ForegroundColor DarkGray
+    $url = 'https://github.com/IranRibeiro55/BIA-SHELL'
+    $padUrl = [Math]::Max(0, ($ScreenWidth - $url.Length) / 2)
+    Write-Host (' ' * [int]$padUrl) -NoNewline
+    Write-Host $url -ForegroundColor DarkGray
+    Write-Host ''
+    Show-BIALoading -Message (Get-BIAStr 'loading_init') -Seconds 2
 }
 
 function Write-BIAProgressBar {
@@ -284,20 +292,14 @@ function Write-BIAProgressBar {
     }
     Write-Host "`r  $Message [" -NoNewline
     Write-Host ('#' * $barWidth) -NoNewline -ForegroundColor $BIA_Theme.Success
-    Write-Host "] Concluido.    " -ForegroundColor $BIA_Theme.Success
+    $doneText = Get-BIAStr 'done_msg'
+    Write-Host "] $doneText.    " -ForegroundColor $BIA_Theme.Success
 }
-
-$script:BIA_PauseMessages = @(
-    'Pronto. Pressione ENTER para continuar...',
-    'Tudo certo. Quando quiser, e so continuar...',
-    'Feito! Pressione ENTER quando quiser.',
-    'Pode continuar quando estiver pronto.',
-    'Estou aqui. Pressione ENTER para seguir.'
-)
 
 function Invoke-BIAPause {
     param([switch]$WithTyping)
-    $msg = $script:BIA_PauseMessages[(Get-Random -Maximum $script:BIA_PauseMessages.Count)]
+    $idx = Get-Random -Minimum 1 -Maximum 6
+    $msg = Get-BIAStr "pause_$idx"
     $useTyping = $WithTyping -or ((Get-Random -Maximum 100) -lt 35)
     $pad = [Math]::Max(0, ($ScreenWidth - [Math]::Min($msg.Length + 12, 60)) / 2)
     Write-Host ''
@@ -312,7 +314,8 @@ function Invoke-BIAPause {
 }
 
 function Get-BIAInput {
-    param([string]$Prompt = 'Escolha', [string]$VariableName = 'Choice')
+    param([string]$Prompt = '', [string]$VariableName = 'Choice')
+    if (-not $Prompt) { $Prompt = Get-BIAStr 'choice' }
     Write-Host "  $Prompt : " -NoNewline -ForegroundColor $BIA_Theme.Menu
     $val = (Read-Host).Trim()
     Set-Variable -Name $VariableName -Value $val -Scope 1

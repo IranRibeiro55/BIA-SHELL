@@ -13,7 +13,6 @@
 $script:BIA_Version = '8.0'
 $ErrorActionPreference = 'Continue'
 $script:WorkDir = Join-Path $env:TEMP 'BIA'
-$script:LogFile = Join-Path $script:WorkDir 'BIA_Acoes.log'
 if (-not (Test-Path $script:WorkDir)) { New-Item -ItemType Directory -Path $script:WorkDir -Force | Out-Null }
 
 $uiPath = Join-Path $PSScriptRoot 'BIA-UI.ps1'
@@ -48,24 +47,12 @@ function Show-BIALanguageSelection {
     Write-Host "  [1] $(Get-BIAStr 'lang_1')     [2] $(Get-BIAStr 'lang_2')     [3] $(Get-BIAStr 'lang_3')" -ForegroundColor Cyan
     Write-Host ''
     Write-Host $line -ForegroundColor Cyan
-    $r = (Read-Host '  1, 2 or 3').Trim()
+    $r = (Read-Host (Get-BIAStr 'lang_prompt')).Trim()
     if ($r -eq '2') { $script:BIA_Lang = 'en' }
     elseif ($r -eq '3') { $script:BIA_Lang = 'es' }
     else { $script:BIA_Lang = 'pt' }
 }
 Show-BIALanguageSelection
-
-function Write-BIALog {
-    param([string]$Msg)
-    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    "$stamp | $Msg" | Out-File -FilePath $script:LogFile -Append -Encoding utf8
-}
-
-function Write-BIALogAction {
-    param([string]$Menu, [string]$Option, [string]$Description = '')
-    $msg = if ($Description) { "Menu $Menu > opcao $Option ($Description)" } else { "Menu $Menu > opcao $Option" }
-    Write-BIALog $msg
-}
 
 function Invoke-BIAVersionCheck {
     try {
@@ -116,7 +103,7 @@ function Get-BIAWelcomeData {
         $totalGB = [math]::Round($mem.TotalVisibleMemorySize / 1MB, 2)
         $freeGB = [math]::Round($mem.FreePhysicalMemory / 1MB, 2)
         $usedGB = [math]::Round(($mem.TotalVisibleMemorySize - $mem.FreePhysicalMemory) / 1MB, 2)
-        $h['RAM'] = "Total: ${totalGB} GB  |  Livre: ${freeGB} GB  |  Em uso: ${usedGB} GB"
+        $h['RAM'] = "$(Get-BIAStr 'ram_total'): ${totalGB} GB  |  $(Get-BIAStr 'ram_free'): ${freeGB} GB  |  $(Get-BIAStr 'ram_used'): ${usedGB} GB"
     }
     $disks = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction SilentlyContinue
     $diskLines = @()
@@ -125,7 +112,7 @@ function Get-BIAWelcomeData {
         $free = [math]::Round($d.FreeSpace / 1GB, 1)
         $pct = if ($d.Size -gt 0) { [math]::Round(($d.FreeSpace / $d.Size) * 100, 0) } else { 0 }
         $label = if ($d.VolumeName) { "$($d.DeviceID) $($d.VolumeName)" } else { $d.DeviceID }
-        $diskLines += "  ${label}: ${free} GB livre de ${total} GB ($pct% livre)"
+        $diskLines += "  ${label}: ${free} GB $(Get-BIAStr 'disk_free_of') ${total} GB ($pct% $(Get-BIAStr 'disk_free_pct'))"
     }
     $h['Disco'] = if ($diskLines.Count -gt 0) { $diskLines -join "`n  " } else { 'N/A' }
     $ips = @()
@@ -137,7 +124,7 @@ function Get-BIAWelcomeData {
     }
     if ($ips.Count -gt 0) {
         $ipDisplay = ($ips | Select-Object -First 3) -join ', '
-        if ($ips.Count -gt 3) { $ipDisplay += " (+$($ips.Count - 3) mais)" }
+        if ($ips.Count -gt 3) { $ipDisplay += " (+$($ips.Count - 3) $(Get-BIAStr 'ip_more'))" }
         $h['IP(s)'] = $ipDisplay
     } else { $h['IP(s)'] = 'N/A' }
     $h['Data/Hora'] = Get-Date -Format 'dd/MM/yyyy HH:mm:ss'
@@ -217,18 +204,18 @@ function Show-MainMenu {
     $prompt = $prompts[(Get-Random -Maximum $prompts.Count)]
     $op = (Read-Host "  $prompt").Trim().ToUpper()
     switch ($op) {
-        '1' { Show-BIATransition -Title ' Usuario ' -Milliseconds 500; Show-UserMenu }
-        '2' { Show-BIATransition -Title ' TI ' -Milliseconds 500; Show-TIMenu }
-        '3' { Show-BIATransition -Title ' Active Directory ' -Milliseconds 500; Show-ADMenu }
-        '4' { Show-BIATransition -Title ' Rede e Seguranca ' -Milliseconds 500; Show-NetMenu }
-        '5' { Show-BIATransition -Title ' Utilitarios ' -Milliseconds 500; Show-UtilsMenu }
-        '6' { Show-BIATransition -Title ' Playbooks ' -Milliseconds 500; Show-PlaybooksMenu }
-        '7' { Show-BIATransition -Title ' Informacoes do sistema ' -Milliseconds 500; Show-SysInfoMenu }
-        '8' { Show-BIATransition -Title ' Diagnostico rapido ' -Milliseconds 500; Show-HealthMenu }
-        '9' { Show-BIATransition -Title ' Impressoras ' -Milliseconds 400; Show-PrintersMenu }
-        '10' { Show-BIATransition -Title ' Azure ' -Milliseconds 400; Show-AzureMenu }
-        '11' { Show-BIATransition -Title ' Instalar aplicativos ' -Milliseconds 400; Show-InstallAppsMenu }
-        '12' { Show-BIATransition -Title ' Comandos e ferramentas ' -Milliseconds 400; Show-ToolsMenu }
+        '1' { Show-BIATransition -Title (Get-BIAStr 'title_user') -Milliseconds 500; Show-UserMenu }
+        '2' { Show-BIATransition -Title (Get-BIAStr 'title_ti') -Milliseconds 500; Show-TIMenu }
+        '3' { Show-BIATransition -Title (Get-BIAStr 'title_ad') -Milliseconds 500; Show-ADMenu }
+        '4' { Show-BIATransition -Title (Get-BIAStr 'title_network') -Milliseconds 500; Show-NetMenu }
+        '5' { Show-BIATransition -Title (Get-BIAStr 'title_utils') -Milliseconds 500; Show-UtilsMenu }
+        '6' { Show-BIATransition -Title (Get-BIAStr 'title_playbooks') -Milliseconds 500; Show-PlaybooksMenu }
+        '7' { Show-BIATransition -Title (Get-BIAStr 'title_sysinfo') -Milliseconds 500; Show-SysInfoMenu }
+        '8' { Show-BIATransition -Title (Get-BIAStr 'title_health') -Milliseconds 500; Show-HealthMenu }
+        '9' { Show-BIATransition -Title (Get-BIAStr 'title_printers') -Milliseconds 400; Show-PrintersMenu }
+        '10' { Show-BIATransition -Title (Get-BIAStr 'title_azure') -Milliseconds 400; Show-AzureMenu }
+        '11' { Show-BIATransition -Title (Get-BIAStr 'title_install') -Milliseconds 400; Show-InstallAppsMenu }
+        '12' { Show-BIATransition -Title (Get-BIAStr 'title_tools') -Milliseconds 400; Show-ToolsMenu }
         'R' { Write-Host ''; $padR = [Math]::Max(0, ($ScreenWidth - 22) / 2); Write-Host (' ' * [int]$padR) -NoNewline; Show-BIATyping -Text (Get-BIAStr 'returning') -DelayMs 30 -Color Accent; Start-Sleep -Milliseconds 400; Show-BIAHomeScreen; Show-MainMenu }
         'S' { Show-BIAAbout; Invoke-BIAPause; Show-MainMenu }
         '0' { Exit-BIA }
@@ -265,28 +252,28 @@ function Show-UserMenu {
     )
     $op = (Read-Host "  $(Get-BIAStr 'choice')").Trim().ToLower()
     switch ($op) {
-        '1' { Invoke-UserClean; Write-BIALogAction '1' '1' 'Limpeza basica'; Invoke-BIAPause; Show-UserMenu }
-        '2' { Invoke-UserNet; Write-BIALogAction '1' '2' 'Diagnostico rede'; Invoke-BIAPause; Show-UserMenu }
-        '3' { Show-BIALoadingShort -Message 'Obtendo ipconfig...' -Steps 8; ipconfig /all | More; Invoke-BIAPause; Show-UserMenu }
-        '4' { Show-BIALoadingShort -Message 'Flush DNS...' -Steps 5; ipconfig /flushdns | Out-Null; Write-BIAMessage (Get-BIAStr 'msg_dns_cleaned') Success; Write-BIALogAction '1' '4' 'Flush DNS'; Invoke-BIAPause; Show-UserMenu }
-        '5' { Start-Process 'control.exe' -ArgumentList '/name Microsoft.WindowsUpdate'; Write-BIAMessage 'Abrindo Windows Update...' Info; Start-Sleep -Seconds 2; Show-UserMenu }
-        '6' { & chkdsk C: /F /R; Write-BIAMessage 'Reinicie o PC para aplicar.' Warning; Invoke-BIAPause; Show-UserMenu }
-        '7' { Start-Process explorer -ArgumentList $env:USERPROFILE; Write-BIAMessage 'Abrindo pasta do usuario.' Info; Show-UserMenu }
-        '8' { Start-Process explorer -ArgumentList 'shell:::{20D04FE0-3AEA-1069-A2D8-08002B30309D}'; Write-BIAMessage 'Abrindo Este Computador.' Info; Show-UserMenu }
-        '9' { Invoke-UserCache; Write-BIALogAction '1' '9' 'Reset caches'; Invoke-BIAPause; Show-UserMenu }
-        'a' { Write-Host '  [1] Documentos  [2] Desktop  [3] Downloads' -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process "$env:USERPROFILE\Documents" }; if ($r -eq '2') { Start-Process "$env:USERPROFILE\Desktop" }; if ($r -eq '3') { Start-Process "$env:USERPROFILE\Downloads" }; Show-UserMenu }
+        '1' { Invoke-UserClean; Invoke-BIAPause; Show-UserMenu }
+        '2' { Invoke-UserNet; Invoke-BIAPause; Show-UserMenu }
+        '3' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_getting_ipconfig') -Steps 8; ipconfig /all | More; Invoke-BIAPause; Show-UserMenu }
+        '4' { Show-BIALoadingShort -Message 'Flush DNS...' -Steps 5; ipconfig /flushdns | Out-Null; Write-BIAMessage (Get-BIAStr 'msg_dns_cleaned') Success; Invoke-BIAPause; Show-UserMenu }
+        '5' { Start-Process 'control.exe' -ArgumentList '/name Microsoft.WindowsUpdate'; Write-BIAMessage (Get-BIAStr 'msg_opening_wu') Info; Start-Sleep -Seconds 2; Show-UserMenu }
+        '6' { & chkdsk C: /F /R; Write-BIAMessage (Get-BIAStr 'msg_restart_required') Warning; Invoke-BIAPause; Show-UserMenu }
+        '7' { Start-Process explorer -ArgumentList $env:USERPROFILE; Write-BIAMessage (Get-BIAStr 'msg_opening_folder') Info; Show-UserMenu }
+        '8' { Start-Process explorer -ArgumentList 'shell:::{20D04FE0-3AEA-1069-A2D8-08002B30309D}'; Write-BIAMessage (Get-BIAStr 'msg_opening_pc') Info; Show-UserMenu }
+        '9' { Invoke-UserCache; Invoke-BIAPause; Show-UserMenu }
+        'a' { Write-Host "  $(Get-BIAStr 'msg_docs_desktop')" -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process "$env:USERPROFILE\Documents" }; if ($r -eq '2') { Start-Process "$env:USERPROFILE\Desktop" }; if ($r -eq '3') { Start-Process "$env:USERPROFILE\Downloads" }; Show-UserMenu }
         '0' { Show-MainMenu }
         default { Show-UserMenu }
     }
 }
 
 function Invoke-UserClean {
-    Write-BIAMessage 'Limpando temporarios...' Info
-    Write-BIAProgressBar -Message 'Limpando TEMP' -TotalSteps 6
+    Write-BIAMessage (Get-BIAStr 'msg_cleanup_temp') Info
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_cleaning_temp') -TotalSteps 6
     Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Limpando C:\Windows\Temp' -TotalSteps 6
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_cleaning_wintemp') -TotalSteps 6
     Remove-Item -Path 'C:\Windows\Temp\*' -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAMessage 'Concluido.' Success
+    Write-BIAMessage (Get-BIAStr 'msg_done') Success
 }
 
 function Invoke-UserNet {
@@ -304,113 +291,86 @@ function Invoke-UserNet {
 }
 
 function Invoke-UserCache {
-    Write-BIAMessage 'Reset de caches comuns...' Info
-    Write-BIAProgressBar -Message 'Fechando Teams (se aberto)' -TotalSteps 3
+    Write-BIAMessage (Get-BIAStr 'msg_cache_reset') Info
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_closing_teams') -TotalSteps 3
     Stop-Process -Name 'Teams' -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Limpando cache Teams/Office' -TotalSteps 4
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_cache_teams') -TotalSteps 4
     Remove-Item -Path "$env:APPDATA\Microsoft\Teams" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "$env:LOCALAPPDATA\Microsoft\Office\16.0\Wef" -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Limpando cache Edge' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_cache_edge') -TotalSteps 3
     Remove-Item -Path "$env:LOCALAPPDATA\Microsoft\Edge\User Data\Default\Cache" -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Limpando cache Chrome' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_cache_chrome') -TotalSteps 3
     Remove-Item -Path "$env:LOCALAPPDATA\Google\Chrome\User Data\Default\Cache" -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAMessage 'OK.' Success
+    Write-BIAMessage (Get-BIAStr 'msg_ok') Success
 }
 
 # ---------- TI ----------
 function Show-TIMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' TI - Ferramentas administrativas ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_ti') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  [1] gpupdate /force',
-        '  [2] Event Viewer',
-        '  [3] Services.msc',
-        '  [4] Perfmon',
-        '  [5] Task Manager',
-        '  [6] tasklist (processos)',
-        '  [7] taskkill por nome',
-        '  [8] Softwares instalados (pode demorar)',
-        '  [9] Top 10 processos (CPU/RAM)',
-        '  [a] Conexao Remota (mstsc)',
-        '  [b] Gerenciar este computador (compmgmt)',
-        '  [c] Gerenciar computador remoto',
-        '  [d] Usuarios e grupos locais (lusrmgr)',
-        '  [e] Atualizacoes instaladas (hotfix)',
-        '  [f] Verificacao SFC (arquivos de sistema)',
-        '  [g] Criar ponto de restauracao',
-        '  [h] Status BitLocker',
-        '  [i] Assistencia Remota / Painel Impressoras',
-        '  [j] Sessoes RDP ativas (query session)',
-        '  [k] whoami /all',
-        '  [l] Tarefas agendadas (listar)',
-        '  [m] Programas de inicializacao',
-        '  [n] Windows Defender (status / scan rapido)',
-        '  [o] net share (compartilhamentos)',
-        '  [p] Pendencia de reinicio',
-        '  [q] net user (usuarios locais)',
-        '  [r] Bloquear estacao',
-        '  [s] Processo por porta',
-        '  [t] Relatorio de Confiabilidade',
-        '  [0] Voltar'
+        (Get-BIAStr 'ti_1'), (Get-BIAStr 'ti_2'), (Get-BIAStr 'ti_3'), (Get-BIAStr 'ti_4'), (Get-BIAStr 'ti_5'), (Get-BIAStr 'ti_6'), (Get-BIAStr 'ti_7'), (Get-BIAStr 'ti_8'), (Get-BIAStr 'ti_9'),
+        (Get-BIAStr 'ti_a'), (Get-BIAStr 'ti_b'), (Get-BIAStr 'ti_c'), (Get-BIAStr 'ti_d'), (Get-BIAStr 'ti_e'), (Get-BIAStr 'ti_f'), (Get-BIAStr 'ti_g'), (Get-BIAStr 'ti_h'), (Get-BIAStr 'ti_i'),
+        (Get-BIAStr 'ti_j'), (Get-BIAStr 'ti_k'), (Get-BIAStr 'ti_l'), (Get-BIAStr 'ti_m'), (Get-BIAStr 'ti_n'), (Get-BIAStr 'ti_o'), (Get-BIAStr 'ti_p'), (Get-BIAStr 'ti_q'), (Get-BIAStr 'ti_r'), (Get-BIAStr 'ti_s'), (Get-BIAStr 'ti_t'), (Get-BIAStr 'ti_0')
     )
-    $op = (Read-Host '  Escolha').Trim().ToLower()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim().ToLower()
     switch ($op) {
-        '1' { Show-BIASpinner -Message 'Aplicando politicas de grupo...' -ScriptBlock { & gpupdate /force 2>&1 | Out-Null }; Invoke-BIAPause; Show-TIMenu }
-        '2' { Start-Process eventvwr.msc; Write-BIAMessage 'Abrindo Event Viewer...' Info; Start-Sleep -Seconds 2; Show-TIMenu }
-        '3' { Start-Process services.msc; Write-BIAMessage 'Abrindo Services...' Info; Start-Sleep -Seconds 2; Show-TIMenu }
-        '4' { Start-Process perfmon; Write-BIAMessage 'Abrindo Performance Monitor...' Info; Start-Sleep -Seconds 2; Show-TIMenu }
-        '5' { Start-Process taskmgr; Write-BIAMessage 'Abrindo Task Manager...' Info; Start-Sleep -Seconds 2; Show-TIMenu }
-        '6' { Show-BIALoadingShort -Message 'Listando processos...' -Steps 10; Get-Process | Format-Table Id, ProcessName, CPU, WorkingSet64 -AutoSize | Out-String | More; Invoke-BIAPause; Show-TIMenu }
-        '7' { $name = (Read-Host '  Processo (ex.: chrome.exe)').Trim(); if ($name) { Stop-Process -Name ($name -replace '\.exe$','') -Force -ErrorAction SilentlyContinue; Write-BIAMessage "Processo $name encerrado." Success }; Invoke-BIAPause; Show-TIMenu }
-        '8' { $sw = Show-BIASpinner -Message 'Listando softwares (WMIC - pode demorar 1-2 min)...' -ScriptBlock { Get-WmiObject Win32_Product | Select-Object Name, Version }; $sw | Format-Table -AutoSize | Out-String | More; Invoke-BIAPause; Show-TIMenu }
+        '1' { Show-BIASpinner -Message (Get-BIAStr 'msg_gpo_apply') -ScriptBlock { & gpupdate /force 2>&1 | Out-Null }; Invoke-BIAPause; Show-TIMenu }
+        '2' { Start-Process eventvwr.msc; Write-BIAMessage (Get-BIAStr 'msg_opening_ev') Info; Start-Sleep -Seconds 2; Show-TIMenu }
+        '3' { Start-Process services.msc; Write-BIAMessage (Get-BIAStr 'msg_opening_services') Info; Start-Sleep -Seconds 2; Show-TIMenu }
+        '4' { Start-Process perfmon; Write-BIAMessage (Get-BIAStr 'msg_opening_perfmon') Info; Start-Sleep -Seconds 2; Show-TIMenu }
+        '5' { Start-Process taskmgr; Write-BIAMessage (Get-BIAStr 'msg_opening_taskmgr') Info; Start-Sleep -Seconds 2; Show-TIMenu }
+        '6' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_listing_processes') -Steps 10; Get-Process | Format-Table Id, ProcessName, CPU, WorkingSet64 -AutoSize | Out-String | More; Invoke-BIAPause; Show-TIMenu }
+        '7' { $name = (Read-Host (Get-BIAStr 'msg_process_name')).Trim(); if ($name) { Stop-Process -Name ($name -replace '\.exe$','') -Force -ErrorAction SilentlyContinue; Write-BIAMessage (Get-BIAStr 'msg_process_killed') Success }; Invoke-BIAPause; Show-TIMenu }
+        '8' { $sw = Show-BIASpinner -Message (Get-BIAStr 'msg_listing_software') -ScriptBlock { Get-WmiObject Win32_Product | Select-Object Name, Version }; $sw | Format-Table -AutoSize | Out-String | More; Invoke-BIAPause; Show-TIMenu }
         '9' { Show-TITopProcesses; Invoke-BIAPause; Show-TIMenu }
-        'a' { Start-Process mstsc; Write-BIAMessage 'Abrindo Conexao Remota.' Info; Show-TIMenu }
-        'b' { Start-Process compmgmt.msc; Write-BIAMessage 'Abrindo Gerenciamento do computador.' Info; Show-TIMenu }
-        'c' { $pc = (Read-Host '  Nome do computador remoto').Trim(); if ($pc) { Start-Process "compmgmt.msc" -ArgumentList "/computer:$pc"; Write-BIAMessage "Abrindo $pc" Info }; Show-TIMenu }
-        'd' { Start-Process lusrmgr.msc; Write-BIAMessage 'Abrindo Usuarios e grupos locais.' Info; Show-TIMenu }
-        'e' { Show-BIALoadingShort -Message 'Listando atualizacoes...' -Steps 12; Get-HotFix | Sort-Object InstalledOn -Descending | Format-Table HotFixID, Description, InstalledOn -AutoSize | Out-String | More; Invoke-BIAPause; Show-TIMenu }
-        'f' { Write-BIAMessage 'SFC pode demorar varios minutos. Deseja continuar? (s/n)' Warning; if ((Read-Host).Trim().ToLower() -eq 's') { sfc /scannow; Invoke-BIAPause }; Show-TIMenu }
+        'a' { Start-Process mstsc; Write-BIAMessage (Get-BIAStr 'msg_opening_remote') Info; Show-TIMenu }
+        'b' { Start-Process compmgmt.msc; Write-BIAMessage (Get-BIAStr 'msg_opening_compmgmt') Info; Show-TIMenu }
+        'c' { $pc = (Read-Host (Get-BIAStr 'msg_remote_pc')).Trim(); if ($pc) { Start-Process "compmgmt.msc" -ArgumentList "/computer:$pc"; Write-BIAMessage "$(Get-BIAStr 'msg_opening') $pc" Info }; Show-TIMenu }
+        'd' { Start-Process lusrmgr.msc; Write-BIAMessage (Get-BIAStr 'msg_opening_lusrmgr') Info; Show-TIMenu }
+        'e' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_listing_updates') -Steps 12; Get-HotFix | Sort-Object InstalledOn -Descending | Format-Table HotFixID, Description, InstalledOn -AutoSize | Out-String | More; Invoke-BIAPause; Show-TIMenu }
+        'f' { Write-BIAMessage (Get-BIAStr 'msg_sfc_confirm') Warning; if ((Read-Host).Trim().ToLower() -match '^[sy]') { sfc /scannow; Invoke-BIAPause }; Show-TIMenu }
         'g' { Invoke-CreateRestorePoint; Invoke-BIAPause; Show-TIMenu }
-        'h' { Show-BIALoadingShort -Message 'BitLocker...' -Steps 5; manage-bde -status 2>$null; if ($LASTEXITCODE -ne 0) { Write-BIAMessage 'BitLocker nao disponivel ou sem unidades protegidas.' Muted }; Invoke-BIAPause; Show-TIMenu }
+        'h' { Show-BIALoadingShort -Message 'BitLocker...' -Steps 5; manage-bde -status 2>$null; if ($LASTEXITCODE -ne 0) { Write-BIAMessage (Get-BIAStr 'msg_bitlocker_na') Muted }; Invoke-BIAPause; Show-TIMenu }
         'i' { Show-TIRemotePrintMenu; Show-TIMenu }
         'j' { query session 2>$null; Invoke-BIAPause; Show-TIMenu }
         'k' { whoami /all | More; Invoke-BIAPause; Show-TIMenu }
         'l' { Get-ScheduledTask | Where-Object State -eq Ready | Select-Object TaskName, TaskPath, State | Format-Table -AutoSize; Invoke-BIAPause; Show-TIMenu }
         'm' { Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyContinue | Select-Object Name, Command, Location | Format-Table -AutoSize -Wrap; Invoke-BIAPause; Show-TIMenu }
-        'n' { try { $mp = Get-MpComputerStatus -ErrorAction Stop; Write-Host '  Defender ativo:' $mp.AntivirusEnabled '| Ultima varredura:' $mp.QuickScanStartTime; $r = (Read-Host '  Scan rapido agora? (s/n)').Trim().ToLower(); if ($r -eq 's') { Start-MpScan -ScanType Quick; Write-BIAMessage 'Scan iniciado.' Success } } catch { Write-BIAMessage 'Get-MpComputerStatus nao disponivel.' Warning }; Invoke-BIAPause; Show-TIMenu }
+        'n' { try { $mp = Get-MpComputerStatus -ErrorAction Stop; Write-Host "  Defender: " -NoNewline; Write-Host $mp.AntivirusEnabled -NoNewline; Write-Host " | $(Get-BIAStr 'msg_last_scan'): " -NoNewline; Write-Host $mp.QuickScanStartTime; $r = (Read-Host (Get-BIAStr 'msg_defender_scan_confirm')).Trim().ToLower(); if ($r -match '^[sy]') { Start-MpScan -ScanType Quick; Write-BIAMessage (Get-BIAStr 'msg_scan_started') Success } } catch { Write-BIAMessage (Get-BIAStr 'msg_defender_na_short') Warning }; Invoke-BIAPause; Show-TIMenu }
         'o' { net share; Invoke-BIAPause; Show-TIMenu }
-        'p' { $k = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction SilentlyContinue; $w = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction SilentlyContinue; if ($k -or $w) { Write-BIAMessage 'Ha pendencia de reinicio.' Warning } else { Write-BIAMessage 'Nenhuma pendencia de reinicio.' Success }; Invoke-BIAPause; Show-TIMenu }
+        'p' { $k = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction SilentlyContinue; $w = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction SilentlyContinue; if ($k -or $w) { Write-BIAMessage (Get-BIAStr 'msg_reboot_pending_detect') Warning } else { Write-BIAMessage (Get-BIAStr 'msg_no_reboot_pending_detect') Success }; Invoke-BIAPause; Show-TIMenu }
         'q' { net user; Invoke-BIAPause; Show-TIMenu }
-        'r' { Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class PInvoke { [DllImport("user32.dll")] public static extern void LockWorkStation(); }'; [PInvoke]::LockWorkStation(); Write-BIAMessage 'Estacao bloqueada.' Info; Start-Sleep -Seconds 2; Show-TIMenu }
-        's' { $port = (Read-Host '  Porta (ex: 443)').Trim(); if ($port) { Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; Write-Host "  Porta $port -> PID $($_.OwningProcess) -> $($p.ProcessName)" } }; Invoke-BIAPause; Show-TIMenu }
-        't' { Start-Process 'perfmon' -ArgumentList '/rel'; Write-BIAMessage 'Abrindo Relatorio de Confiabilidade.' Info; Show-TIMenu }
+        'r' { Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class PInvoke { [DllImport("user32.dll")] public static extern void LockWorkStation(); }'; [PInvoke]::LockWorkStation(); Write-BIAMessage (Get-BIAStr 'msg_station_locked') Info; Start-Sleep -Seconds 2; Show-TIMenu }
+        's' { $port = (Read-Host (Get-BIAStr 'msg_port_prompt')).Trim(); if ($port) { Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; Write-Host "  $(Get-BIAStr 'lbl_port') $port -> PID $($_.OwningProcess) -> $($p.ProcessName)" } }; Invoke-BIAPause; Show-TIMenu }
+        't' { Start-Process 'perfmon' -ArgumentList '/rel'; Write-BIAMessage (Get-BIAStr 'msg_opening_reliability_short') Info; Show-TIMenu }
         '0' { Show-MainMenu }
         default { Show-TIMenu }
     }
 }
 
 function Invoke-CreateRestorePoint {
-    Write-BIAMessage 'Criando ponto de restauracao...' Info
+    Write-BIAMessage (Get-BIAStr 'msg_restore_creating') Info
     try {
         $null = powershell -NoProfile -Command "Checkpoint-Computer -Description 'BIA Shell' -RestorePointType 'MODIFY_SETTINGS'" 2>$null
-        if ($LASTEXITCODE -eq 0) { Write-BIAMessage 'Ponto de restauracao criado.' Success } else { throw 'Falha' }
+        if ($LASTEXITCODE -eq 0) { Write-BIAMessage (Get-BIAStr 'msg_restore_ok') Success } else { throw 'Falha' }
     } catch {
         try {
             wmic.exe /Namespace:\\root\default Path SystemRestore Call CreateRestorePoint "BIA", 7 2>$null
-            Write-BIAMessage 'Ponto de restauracao criado (WMI).' Success
-        } catch { Write-BIAMessage 'Requer elevacao de administrador.' Error }
+            Write-BIAMessage (Get-BIAStr 'msg_restore_wmi_ok') Success
+        } catch { Write-BIAMessage (Get-BIAStr 'msg_admin_required') Error }
     }
 }
 
 function Show-TIRemotePrintMenu {
-    Write-Host '  [1] Assistencia Remota (msra)  [2] Painel de Impressoras' -ForegroundColor $BIA_Theme.Menu
-    $r = (Read-Host '  Escolha').Trim()
-    if ($r -eq '1') { Start-Process msra; Write-BIAMessage 'Abrindo Assistencia Remota.' Info }
-    if ($r -eq '2') { Start-Process 'control.exe' -ArgumentList 'printers'; Write-BIAMessage 'Abrindo Impressoras.' Info }
+    Write-Host (Get-BIAStr 'ti_remote_print_1') (Get-BIAStr 'ti_remote_print_2') -ForegroundColor $BIA_Theme.Menu
+    $r = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim()
+    if ($r -eq '1') { Start-Process msra; Write-BIAMessage (Get-BIAStr 'msg_opening_assist') Info }
+    if ($r -eq '2') { Start-Process 'control.exe' -ArgumentList 'printers'; Write-BIAMessage (Get-BIAStr 'msg_opening_printers') Info }
 }
 
 function Show-TITopProcesses {
-    Show-BIALoadingShort -Message 'Coletando uso CPU/RAM...' -Steps 12
+    Show-BIALoadingShort -Message (Get-BIAStr 'msg_cpu_ram') -Steps 12
     Get-Process | Sort-Object CPU -Descending | Select-Object -First 10 |
         Format-Table ProcessName, Id, @{N='CPU(s)';E={[math]::Round($_.CPU,2)}}, @{N='RAM(MB)';E={[math]::Round($_.WorkingSet64/1MB,2)}} -AutoSize
 }
@@ -418,19 +378,11 @@ function Show-TITopProcesses {
 # ---------- AD ----------
 function Show-ADMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Servidor - Active Directory ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_ad') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  [1] dsa.msc (AD Users and Computers)',
-        '  [2] gpmc.msc (Group Policy)',
-        '  [3] DNS mgmt',
-        '  [4] DHCP mgmt',
-        '  [5] repadmin /replsummary',
-        '  [6] repadmin /syncall /AdeP',
-        '  [7] dcdiag',
-        '  [8] Diagnostico AD rapido (nltest/klist/gpresult)',
-        '  [0] Voltar'
+        (Get-BIAStr 'ad_1'), (Get-BIAStr 'ad_2'), (Get-BIAStr 'ad_3'), (Get-BIAStr 'ad_4'), (Get-BIAStr 'ad_5'), (Get-BIAStr 'ad_6'), (Get-BIAStr 'ad_7'), (Get-BIAStr 'ad_8'), (Get-BIAStr 'ad_0')
     )
-    $op = (Read-Host '  Escolha').Trim()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim()
     switch ($op) {
         '1' { Start-Process dsa.msc; Show-ADMenu }
         '2' { Start-Process gpmc.msc; Show-ADMenu }
@@ -459,39 +411,26 @@ function Invoke-ADFast {
 # ---------- REDE ----------
 function Show-NetMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Rede e Seguranca ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_network') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  [1] Ping 8.8.8.8',
-        '  [2] Tracert google.com',
-        '  [3] netstat -ano',
-        '  [4] Reset winsock/ip (basico)',
-        '  [5] Firewall OFF',
-        '  [6] Firewall ON',
-        '  [7] Limpar ARP + renovar DHCP',
-        '  [8] Portas em uso (LISTEN/ESTABLISHED)',
-        '  [9] Mapear unidade de rede',
-        '  [a] Abrir pasta de rede (\\\\computador)',
-        '  [b] nslookup (consultar DNS)',
-        '  [c] Test-NetConnection (host + porta)',
-        '  [d] route print',
-        '  [e] arp -a (tabela ARP)',
-        '  [f] ipconfig /displaydns',
-        '  [0] Voltar'
+        (Get-BIAStr 'net_1'), (Get-BIAStr 'net_2'), (Get-BIAStr 'net_3'), (Get-BIAStr 'net_4'), (Get-BIAStr 'net_5'), (Get-BIAStr 'net_6'),
+        (Get-BIAStr 'net_7'), (Get-BIAStr 'net_8'), (Get-BIAStr 'net_9'), (Get-BIAStr 'net_a'), (Get-BIAStr 'net_b'), (Get-BIAStr 'net_c'),
+        (Get-BIAStr 'net_d'), (Get-BIAStr 'net_e'), (Get-BIAStr 'net_f'), (Get-BIAStr 'net_0')
     )
-    $op = (Read-Host '  Escolha').Trim().ToLower()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim().ToLower()
     switch ($op) {
         '1' { ping -n 4 8.8.8.8; Invoke-BIAPause; Show-NetMenu }
-        '2' { Show-BIALoadingShort -Message 'Tracert...' -Steps 5; tracert google.com; Invoke-BIAPause; Show-NetMenu }
-        '3' { Show-BIALoadingShort -Message 'netstat...' -Steps 8; netstat -ano | More; Invoke-BIAPause; Show-NetMenu }
-        '4' { Write-BIAProgressBar -Message 'Reset Winsock' -TotalSteps 3; netsh winsock reset 2>$null; Write-BIAProgressBar -Message 'Reset IP' -TotalSteps 3; netsh int ip reset 2>$null; Write-BIAMessage 'Reinicie o PC para aplicar.' Warning; Invoke-BIAPause; Show-NetMenu }
-        '5' { netsh advfirewall set allprofiles state off; Write-BIAMessage 'Firewall OFF.' Warning; Invoke-BIAPause; Show-NetMenu }
-        '6' { netsh advfirewall set allprofiles state on; Write-BIAMessage 'Firewall ON.' Success; Invoke-BIAPause; Show-NetMenu }
-        '7' { Write-BIAProgressBar -Message 'Limpando ARP' -TotalSteps 3; arp -d * 2>$null; Write-BIAProgressBar -Message 'Release/Renew DHCP' -TotalSteps 5; ipconfig /release 2>$null; ipconfig /renew 2>$null; Invoke-BIAPause; Show-NetMenu }
+        '2' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_tracert') -Steps 5; tracert google.com; Invoke-BIAPause; Show-NetMenu }
+        '3' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_netstat') -Steps 8; netstat -ano | More; Invoke-BIAPause; Show-NetMenu }
+        '4' { Write-BIAProgressBar -Message (Get-BIAStr 'msg_reset_winsock') -TotalSteps 3; netsh winsock reset 2>$null; Write-BIAProgressBar -Message (Get-BIAStr 'msg_reset_ip') -TotalSteps 3; netsh int ip reset 2>$null; Write-BIAMessage (Get-BIAStr 'msg_restart_required') Warning; Invoke-BIAPause; Show-NetMenu }
+        '5' { netsh advfirewall set allprofiles state off; Write-BIAMessage (Get-BIAStr 'msg_firewall_off') Warning; Invoke-BIAPause; Show-NetMenu }
+        '6' { netsh advfirewall set allprofiles state on; Write-BIAMessage (Get-BIAStr 'msg_firewall_on') Success; Invoke-BIAPause; Show-NetMenu }
+        '7' { Write-BIAProgressBar -Message (Get-BIAStr 'msg_clearing_arp') -TotalSteps 3; arp -d * 2>$null; Write-BIAProgressBar -Message (Get-BIAStr 'msg_release_renew') -TotalSteps 5; ipconfig /release 2>$null; ipconfig /renew 2>$null; Invoke-BIAPause; Show-NetMenu }
         '8' { Show-NetPorts; Invoke-BIAPause; Show-NetMenu }
-        '9' { $drive = (Read-Host '  Letra da unidade (ex: Z)').Trim().ToUpper(); $path = (Read-Host '  Caminho (ex: \\\\servidor\\pasta)').Trim(); if ($drive -and $path) { & net use "${drive}:" $path 2>$null; Write-BIAMessage "Mapeado ${drive}: para $path" Success }; Invoke-BIAPause; Show-NetMenu }
-        'a' { $pc = (Read-Host '  Nome do computador ou caminho (ex: \\\\PC01)').Trim(); if ($pc) { if ($pc -notlike '\\\\*') { $pc = "\\$pc" }; Start-Process explorer -ArgumentList $pc; Write-BIAMessage "Abrindo $pc" Info }; Show-NetMenu }
-        'b' { $h = (Read-Host '  Nome ou IP para consultar DNS').Trim(); if ($h) { nslookup $h }; Invoke-BIAPause; Show-NetMenu }
-        'c' { $t = (Read-Host '  Host (ex: google.com)').Trim(); $prtStr = (Read-Host '  Porta (Enter=pula)').Trim(); if ($t) { $p = 0; if ($prtStr -and [int]::TryParse($prtStr, [ref]$p) -and $p -gt 0) { Test-NetConnection -ComputerName $t -Port $p } else { Test-NetConnection -ComputerName $t } }; Invoke-BIAPause; Show-NetMenu }
+        '9' { $drive = (Read-Host (Get-BIAStr 'msg_drive_letter')).Trim().ToUpper(); $path = (Read-Host (Get-BIAStr 'msg_unc_path')).Trim(); if ($drive -and $path) { & net use "${drive}:" $path 2>$null; Write-BIAMessage "$(Get-BIAStr 'msg_mapped_drive') ${drive}: -> $path" Success }; Invoke-BIAPause; Show-NetMenu }
+        'a' { $pc = (Read-Host (Get-BIAStr 'msg_remote_pc')).Trim(); if ($pc) { if ($pc -notlike '\\\\*') { $pc = "\\$pc" }; Start-Process explorer -ArgumentList $pc; Write-BIAMessage "$(Get-BIAStr 'msg_opening') $pc" Info }; Show-NetMenu }
+        'b' { $h = (Read-Host (Get-BIAStr 'msg_dns_query_prompt')).Trim(); if ($h) { nslookup $h }; Invoke-BIAPause; Show-NetMenu }
+        'c' { $t = (Read-Host (Get-BIAStr 'msg_host_port')).Trim(); $prtStr = (Read-Host (Get-BIAStr 'msg_port_enter')).Trim(); if ($t) { $p = 0; if ($prtStr -and [int]::TryParse($prtStr, [ref]$p) -and $p -gt 0) { Test-NetConnection -ComputerName $t -Port $p } else { Test-NetConnection -ComputerName $t } }; Invoke-BIAPause; Show-NetMenu }
         'd' { route print; Invoke-BIAPause; Show-NetMenu }
         'e' { arp -a; Invoke-BIAPause; Show-NetMenu }
         'f' { ipconfig /displaydns | More; Invoke-BIAPause; Show-NetMenu }
@@ -501,7 +440,7 @@ function Show-NetMenu {
 }
 
 function Show-NetPorts {
-    Show-BIALoadingShort -Message 'Analisando portas...' -Steps 10
+    Show-BIALoadingShort -Message (Get-BIAStr 'msg_analyzing_ports') -Steps 10
     $lines = netstat -ano 2>$null
     $lines | Select-String -Pattern 'LISTEN|ESTABLISHED' | Select-Object -First 30
 }
@@ -509,45 +448,31 @@ function Show-NetPorts {
 # ---------- UTILITARIOS ----------
 function Show-UtilsMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Utilitarios ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_utils') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  [1] Regedit',
-        '  [2] Agendar desligamento 1h',
-        '  [3] Agendar desligamento 2h',
-        '  [4] Cancelar desligamento',
-        '  [5] Limpeza de disco (Prefetch, etc)',
-        '  [6] Otimizar unidades (SSD/HDD)',
-        '  [7] Backup do registro (exportar HKCU)',
-        '  [8] TeamViewer / AnyDesk (se instalado)',
-        '  [9] Atalhos rapidos (Notepad, Calc, CMD, PowerShell)',
-        '  [a] Esvaziar Lixeira',
-        '  [b] Variaveis de ambiente (listar)',
-        '  [c] Ver clipboard',
-        '  [d] Hash de arquivo (SHA256)',
-        '  [e] Relatorio de bateria (powercfg)',
-        '  [f] Ativacao do Windows (status)',
-        '  [g] Painelis: Programas | Rede | Energia | Som | Data/hora | Credenciais',
-        '  [h] Opcoes de desempenho (aparencia vs desempenho)',
-        '  [0] Voltar'
+        (Get-BIAStr 'utils_1'), (Get-BIAStr 'utils_2'), (Get-BIAStr 'utils_3'), (Get-BIAStr 'utils_4'), (Get-BIAStr 'utils_5'),
+        (Get-BIAStr 'utils_6'), (Get-BIAStr 'utils_7'), (Get-BIAStr 'utils_8'), (Get-BIAStr 'utils_9'),
+        (Get-BIAStr 'utils_a'), (Get-BIAStr 'utils_b'), (Get-BIAStr 'utils_c'), (Get-BIAStr 'utils_d'), (Get-BIAStr 'utils_e'),
+        (Get-BIAStr 'utils_f'), (Get-BIAStr 'utils_g'), (Get-BIAStr 'utils_h'), (Get-BIAStr 'utils_0')
     )
-    $op = (Read-Host '  Escolha').Trim().ToLower()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim().ToLower()
     switch ($op) {
         '1' { Start-Process regedit; Show-UtilsMenu }
-        '2' { shutdown /s /t 3600 /c 'Desligamento em 1h - BIA'; Write-BIAMessage 'Desligamento agendado em 1h.' Info; Invoke-BIAPause; Show-UtilsMenu }
-        '3' { shutdown /s /t 7200 /c 'Desligamento em 2h - BIA'; Write-BIAMessage 'Desligamento agendado em 2h.' Info; Invoke-BIAPause; Show-UtilsMenu }
-        '4' { shutdown /a; Write-BIAMessage 'Desligamento cancelado.' Success; Invoke-BIAPause; Show-UtilsMenu }
+        '2' { shutdown /s /t 3600 /c 'Desligamento em 1h - BIA'; Write-BIAMessage (Get-BIAStr 'msg_shutdown_1h') Info; Invoke-BIAPause; Show-UtilsMenu }
+        '3' { shutdown /s /t 7200 /c 'Desligamento em 2h - BIA'; Write-BIAMessage (Get-BIAStr 'msg_shutdown_2h') Info; Invoke-BIAPause; Show-UtilsMenu }
+        '4' { shutdown /a; Write-BIAMessage (Get-BIAStr 'msg_shutdown_cancelled') Success; Invoke-BIAPause; Show-UtilsMenu }
         '5' { Invoke-DiskCleanupLight; Invoke-BIAPause; Show-UtilsMenu }
         '6' { Invoke-OptimizeVolumes; Invoke-BIAPause; Show-UtilsMenu }
-        '7' { $out = Join-Path $script:WorkDir "RegBackup_$(Get-Date -Format 'yyyyMMdd-HHmmss').reg"; reg export HKCU $out 2>$null; Write-BIAMessage "Backup salvo: $out" Success; Invoke-BIAPause; Show-UtilsMenu }
+        '7' { $out = Join-Path $script:WorkDir "RegBackup_$(Get-Date -Format 'yyyyMMdd-HHmmss').reg"; reg export HKCU $out 2>$null; Write-BIAMessage "$(Get-BIAStr 'msg_backup_saved') $out" Success; Invoke-BIAPause; Show-UtilsMenu }
         '8' { Invoke-StartRemoteTool; Show-UtilsMenu }
-        '9' { Write-Host '  [1] Bloco de notas  [2] Calculadora  [3] CMD  [4] PowerShell' -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process notepad }; if ($r -eq '2') { Start-Process calc }; if ($r -eq '3') { Start-Process cmd }; if ($r -eq '4') { Start-Process powershell }; Show-UtilsMenu }
-        'a' { Clear-RecycleBin -Force -ErrorAction SilentlyContinue; Write-BIAMessage 'Lixeira esvaziada.' Success; Invoke-BIAPause; Show-UtilsMenu }
+        '9' { Write-Host "  $(Get-BIAStr 'msg_shortcuts')" -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process notepad }; if ($r -eq '2') { Start-Process calc }; if ($r -eq '3') { Start-Process cmd }; if ($r -eq '4') { Start-Process powershell }; Show-UtilsMenu }
+        'a' { Clear-RecycleBin -Force -ErrorAction SilentlyContinue; Write-BIAMessage (Get-BIAStr 'msg_recycle_emptied') Success; Invoke-BIAPause; Show-UtilsMenu }
         'b' { Get-ChildItem Env: | Sort-Object Name | Format-Table -AutoSize; Invoke-BIAPause; Show-UtilsMenu }
-        'c' { $c = Get-Clipboard -ErrorAction SilentlyContinue; if ($c) { $c | Out-String | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  (vazio)' }; Invoke-BIAPause; Show-UtilsMenu }
-        'd' { $f = (Read-Host '  Caminho do arquivo').Trim(); if ($f -and (Test-Path $f)) { Get-FileHash -Path $f -Algorithm SHA256 | Format-List } else { Write-BIAMessage 'Arquivo nao encontrado.' Warning }; Invoke-BIAPause; Show-UtilsMenu }
-        'e' { $desk = [Environment]::GetFolderPath('Desktop'); Push-Location $desk; powercfg /batteryreport 2>$null; Pop-Location; $out = Join-Path $desk 'battery-report.html'; if (Test-Path $out) { Start-Process $out; Write-BIAMessage "Relatorio: $out" Success } else { Write-BIAMessage 'Relatorio no diretorio atual.' Info }; Invoke-BIAPause; Show-UtilsMenu }
+        'c' { $c = Get-Clipboard -ErrorAction SilentlyContinue; if ($c) { $c | Out-String | ForEach-Object { Write-Host "  $_" } } else { Write-Host "  $(Get-BIAStr 'msg_clipboard_empty')" }; Invoke-BIAPause; Show-UtilsMenu }
+        'd' { $f = (Read-Host (Get-BIAStr 'msg_path_prompt')).Trim(); if ($f -and (Test-Path $f)) { Get-FileHash -Path $f -Algorithm SHA256 | Format-List } else { Write-BIAMessage (Get-BIAStr 'msg_file_not_found') Warning }; Invoke-BIAPause; Show-UtilsMenu }
+        'e' { $desk = [Environment]::GetFolderPath('Desktop'); Push-Location $desk; powercfg /batteryreport 2>$null; Pop-Location; $out = Join-Path $desk 'battery-report.html'; if (Test-Path $out) { Start-Process $out; Write-BIAMessage "$(Get-BIAStr 'msg_report_saved') $out" Success } else { Write-BIAMessage (Get-BIAStr 'msg_report_generated') Info }; Invoke-BIAPause; Show-UtilsMenu }
         'f' { Show-BIAWindowsActivation; Invoke-BIAPause; Show-UtilsMenu }
-        'g' { Write-Host '  [1] Programas  [2] Rede  [3] Energia  [4] Som  [5] Data/hora  [6] Credenciais' -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process appwiz.cpl }; if ($r -eq '2') { Start-Process ncpa.cpl }; if ($r -eq '3') { Start-Process powercfg.cpl }; if ($r -eq '4') { Start-Process mmsys.cpl }; if ($r -eq '5') { Start-Process timedate.cpl }; if ($r -eq '6') { Start-Process 'control.exe' -ArgumentList '/name', 'Microsoft.CredentialManager' }; Show-UtilsMenu }
+        'g' { Write-Host (Get-BIAStr 'msg_panels_menu') -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process appwiz.cpl }; if ($r -eq '2') { Start-Process ncpa.cpl }; if ($r -eq '3') { Start-Process powercfg.cpl }; if ($r -eq '4') { Start-Process mmsys.cpl }; if ($r -eq '5') { Start-Process timedate.cpl }; if ($r -eq '6') { Start-Process 'control.exe' -ArgumentList '/name', 'Microsoft.CredentialManager' }; Show-UtilsMenu }
         'h' { Invoke-BIAPerformanceOptions; Show-UtilsMenu }
         '0' { Show-MainMenu }
         default { Show-UtilsMenu }
@@ -556,18 +481,18 @@ function Show-UtilsMenu {
 
 function Invoke-BIAPerformanceOptions {
     Write-Host ''
-    Write-Host '  [1] Abrir painel de desempenho do Windows (escolher manualmente)' -ForegroundColor $BIA_Theme.Menu
-    Write-Host '  [2] Definir: Melhor aparência' -ForegroundColor $BIA_Theme.Menu
-    Write-Host '  [3] Definir: Melhor desempenho' -ForegroundColor $BIA_Theme.Menu
-    Write-Host '  [0] Voltar' -ForegroundColor $BIA_Theme.Menu
+    Write-Host (Get-BIAStr 'perf_1') -ForegroundColor $BIA_Theme.Menu
+    Write-Host (Get-BIAStr 'perf_2') -ForegroundColor $BIA_Theme.Menu
+    Write-Host (Get-BIAStr 'perf_3') -ForegroundColor $BIA_Theme.Menu
+    Write-Host (Get-BIAStr 'perf_0') -ForegroundColor $BIA_Theme.Menu
     Write-Host ''
-    $r = (Read-Host '  Escolha').Trim()
+    $r = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim()
     if ($r -eq '1') {
         $perf = "$env:SystemRoot\System32\systempropertiesperformance.exe"
-        if (Test-Path $perf) { Start-Process $perf; Write-BIAMessage 'Abrindo Opcoes de Desempenho.' Info }
+        if (Test-Path $perf) { Start-Process $perf; Write-BIAMessage (Get-BIAStr 'msg_perf_open') Info }
         else {
             Start-Process 'control.exe' -ArgumentList 'sysdm.cpl,,3'
-            Write-BIAMessage 'Abrindo Propriedades do Sistema > Avancado. Clique em "Configuracoes" em Desempenho.' Info
+            Write-BIAMessage (Get-BIAStr 'msg_perf_advanced') Info
         }
         return
     }
@@ -579,10 +504,10 @@ function Invoke-BIAPerformanceOptions {
             $desk = 'HKCU:\Control Panel\Desktop'
             $maskAppearance = [byte[]](0x9E, 0x3E, 0x07, 0x80, 0x12, 0x00, 0x00, 0x00)
             Set-ItemProperty -Path $desk -Name 'UserPreferencesMask' -Value $maskAppearance -Type Binary -Force -ErrorAction SilentlyContinue
-            Write-BIAMessage 'Definido para Melhor aparência. Reiniciando Explorer para aplicar...' Success
+            Write-BIAMessage (Get-BIAStr 'msg_perf_appearance_ok') Success
             Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; Start-Process explorer
         } catch {
-            Write-BIAMessage 'Nao foi possivel alterar. Abra o painel (opcao 1) e escolha manualmente.' Warning
+            Write-BIAMessage (Get-BIAStr 'msg_perf_failed') Warning
         }
         Invoke-BIAPause
         return
@@ -595,10 +520,10 @@ function Invoke-BIAPerformanceOptions {
             $desk = 'HKCU:\Control Panel\Desktop'
             $maskPerformance = [byte[]](0x9E, 0x12, 0x03, 0x80, 0x10, 0x00, 0x00, 0x00)
             Set-ItemProperty -Path $desk -Name 'UserPreferencesMask' -Value $maskPerformance -Type Binary -Force -ErrorAction SilentlyContinue
-            Write-BIAMessage 'Definido para Melhor desempenho. Reiniciando Explorer para aplicar...' Success
+            Write-BIAMessage (Get-BIAStr 'msg_perf_performance_ok') Success
             Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; Start-Process explorer
         } catch {
-            Write-BIAMessage 'Nao foi possivel alterar. Abra o painel (opcao 1) e escolha manualmente.' Warning
+            Write-BIAMessage (Get-BIAStr 'msg_perf_failed') Warning
         }
         Invoke-BIAPause
         return
@@ -608,35 +533,35 @@ function Invoke-BIAPerformanceOptions {
 function Invoke-StartRemoteTool {
     $tv = Get-ChildItem -Path 'C:\Program Files\TeamViewer\TeamViewer.exe', 'C:\Program Files (x86)\TeamViewer\TeamViewer.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
     $ad = Get-ChildItem -Path 'C:\Program Files (x86)\AnyDesk\AnyDesk.exe', 'C:\Program Files\AnyDesk\AnyDesk.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($tv) { Start-Process $tv.FullName; Write-BIAMessage 'Abrindo TeamViewer.' Success }
-    elseif ($ad) { Start-Process $ad.FullName; Write-BIAMessage 'Abrindo AnyDesk.' Success }
-    else { Write-BIAMessage 'TeamViewer/AnyDesk nao encontrados.' Warning }
+    if ($tv) { Start-Process $tv.FullName; Write-BIAMessage (Get-BIAStr 'msg_teamviewer') Success }
+    elseif ($ad) { Start-Process $ad.FullName; Write-BIAMessage (Get-BIAStr 'msg_anydesk') Success }
+    else { Write-BIAMessage (Get-BIAStr 'msg_remote_na') Warning }
 }
 
 function Invoke-DiskCleanupLight {
-    Write-BIAMessage 'Limpando Prefetch e cache de fontes...' Info
-    Write-BIAProgressBar -Message 'Prefetch' -TotalSteps 5
+    Write-BIAMessage (Get-BIAStr 'msg_cleanup_prefetch') Info
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_prefetch') -TotalSteps 5
     Remove-Item -Path 'C:\Windows\Prefetch\*' -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Font cache' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_font_cache') -TotalSteps 3
     Remove-Item -Path "$env:LOCALAPPDATA\FontCache\*" -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAMessage 'Concluido. Para limpeza completa use "Limpeza de disco" do Windows.' Success
+    Write-BIAMessage (Get-BIAStr 'msg_disk_cleanup_done') Success
 }
 
 function Invoke-OptimizeVolumes {
-    Write-BIAMessage 'Otimizando volumes (pode demorar)...' Info
+    Write-BIAMessage (Get-BIAStr 'msg_optimizing') Info
     $vols = Get-Volume -ErrorAction SilentlyContinue | Where-Object { $_.DriveLetter }
-    if (-not $vols) { Write-BIAMessage 'Nenhum volume encontrado ou cmdlet nao disponivel.' Warning; return }
+    if (-not $vols) { Write-BIAMessage (Get-BIAStr 'msg_done') Warning; return }
     foreach ($v in $vols) {
         Write-BIAProgressBar -Message "Otimizando $($v.DriveLetter):" -TotalSteps 8
         try { Optimize-Volume -DriveLetter $v.DriveLetter -ReTrim -ErrorAction Stop } catch { Write-BIAMessage "Pulando $($v.DriveLetter): $_" Warning }
     }
-    Write-BIAMessage 'Concluido.' Success
+    Write-BIAMessage (Get-BIAStr 'msg_optimize_done') Success
 }
 
 function Show-BIAWindowsActivation {
     $statusText = @{
-        0 = 'Nao licenciado'
-        1 = 'Licenciado (ativado)'
+        0 = (Get-BIAStr 'msg_activation_unlicensed')
+        1 = (Get-BIAStr 'msg_activation_licensed')
         2 = 'Periodo de graca (OOB)'
         3 = 'Periodo de tolerancia'
         4 = 'Periodo de graca (nao genuino)'
@@ -664,12 +589,12 @@ function Show-BIAWindowsActivation {
             return
         }
     } catch { }
-    Write-BIAMessage 'Consultando slmgr.vbs (resumo)...' Info
+    Write-BIAMessage (Get-BIAStr 'msg_activation_checking') Info
     $slmgr = "$env:SystemRoot\System32\slmgr.vbs"
     if (Test-Path $slmgr) {
         & cscript //nologo $slmgr /dli 2>&1 | ForEach-Object { Write-Host "  $_" }
     } else {
-        Write-BIAMessage 'Nao foi possivel verificar ativacao (WMI e slmgr indisponiveis).' Warning
+        Write-BIAMessage (Get-BIAStr 'msg_activation_failed') Warning
     }
 }
 
@@ -683,11 +608,11 @@ function Show-PlaybooksMenu {
     )
     $op = (Read-Host "  $(Get-BIAStr 'choice')").Trim()
     switch ($op) {
-        '1' { Invoke-PlaybookSlow; Write-BIALogAction '6' '1' 'PC lento'; Invoke-BIAPause; Show-PlaybooksMenu }
-        '2' { Invoke-PlaybookNet; Write-BIALogAction '6' '2' 'Sem internet'; Invoke-BIAPause; Show-PlaybooksMenu }
-        '3' { Invoke-PlaybookPrint; Write-BIALogAction '6' '3' 'Impressora'; Invoke-BIAPause; Show-PlaybooksMenu }
-        '4' { Invoke-PlaybookNoSound; Write-BIALogAction '6' '4' 'Sem som'; Invoke-BIAPause; Show-PlaybooksMenu }
-        '5' { Invoke-PlaybookRebootCheck; Write-BIALogAction '6' '5' 'Verificar reinicio'; Invoke-BIAPause; Show-PlaybooksMenu }
+        '1' { Invoke-PlaybookSlow; Invoke-BIAPause; Show-PlaybooksMenu }
+        '2' { Invoke-PlaybookNet; Invoke-BIAPause; Show-PlaybooksMenu }
+        '3' { Invoke-PlaybookPrint; Invoke-BIAPause; Show-PlaybooksMenu }
+        '4' { Invoke-PlaybookNoSound; Invoke-BIAPause; Show-PlaybooksMenu }
+        '5' { Invoke-PlaybookRebootCheck; Invoke-BIAPause; Show-PlaybooksMenu }
         '0' { Show-MainMenu }
         default { Show-PlaybooksMenu }
     }
@@ -740,37 +665,37 @@ function Invoke-PlaybookRebootCheck {
 }
 
 function Invoke-PlaybookSlow {
-    Write-BIAProgressBar -Message 'Limpando TEMP' -TotalSteps 5
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_cleaning_temp') -TotalSteps 5
     Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Limpando C:\Windows\Temp' -TotalSteps 5
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_cleaning_wintemp') -TotalSteps 5
     Remove-Item -Path 'C:\Windows\Temp\*' -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Flush DNS' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_flush_dns') -TotalSteps 3
     ipconfig /flushdns 2>$null
-    Write-BIAProgressBar -Message 'Release/Renew IP' -TotalSteps 6
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_release_renew') -TotalSteps 6
     ipconfig /release 2>$null; ipconfig /renew 2>$null
-    Write-BIAMessage 'PC otimizado.' Success
+    Write-BIAMessage (Get-BIAStr 'msg_pc_optimized') Success
 }
 
 function Invoke-PlaybookNet {
-    Write-BIAProgressBar -Message 'Reset Winsock' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_reset_winsock') -TotalSteps 3
     netsh winsock reset 2>$null
-    Write-BIAProgressBar -Message 'Reset IP' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_reset_ip') -TotalSteps 3
     netsh int ip reset 2>$null
-    Write-BIAProgressBar -Message 'Flush DNS' -TotalSteps 2
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_flush_dns') -TotalSteps 2
     ipconfig /flushdns 2>$null
-    Write-BIAProgressBar -Message 'Release/Renew IP' -TotalSteps 4
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_release_renew') -TotalSteps 4
     ipconfig /release 2>$null; ipconfig /renew 2>$null
-    Write-BIAMessage 'Rede reinicializada.' Success
+    Write-BIAMessage (Get-BIAStr 'msg_net_reset') Success
 }
 
 function Invoke-PlaybookPrint {
-    Write-BIAProgressBar -Message 'Parando spooler' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_stopping_spooler') -TotalSteps 3
     Stop-Service -Name Spooler -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Limpando fila' -TotalSteps 4
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_clearing_queue') -TotalSteps 4
     Remove-Item -Path 'C:\Windows\System32\spool\PRINTERS\*' -Recurse -Force -ErrorAction SilentlyContinue
-    Write-BIAProgressBar -Message 'Iniciando spooler' -TotalSteps 3
+    Write-BIAProgressBar -Message (Get-BIAStr 'msg_starting_spooler') -TotalSteps 3
     Start-Service -Name Spooler -ErrorAction SilentlyContinue
-    Write-BIAMessage 'Spool limpo.' Success
+    Write-BIAMessage (Get-BIAStr 'msg_spool_cleaned') Success
 }
 
 # ---------- SYS INFO ----------
@@ -783,11 +708,11 @@ function Show-SysInfoMenu {
     )
     $op = (Read-Host "  $(Get-BIAStr 'choice')").Trim()
     switch ($op) {
-        '1' { Show-BIALoadingShort -Message 'Coletando resumo...' -Steps 12; Show-SysSummary; Write-BIALogAction '7' '1' 'Resumo tela'; Invoke-BIAPause; Show-SysInfoMenu }
-        '2' { Export-SysInfo; Write-BIALogAction '7' '2' 'Export completo'; Invoke-BIAPause; Show-SysInfoMenu }
-        '3' { Show-SysUptime; Write-BIALogAction '7' '3' 'Uptime'; Invoke-BIAPause; Show-SysInfoMenu }
-        '4' { Show-BIALoadingShort -Message 'Atualizando dados...' -Steps 6; Show-BIAWelcomeDashboard; Write-BIALogAction '7' '4' 'Dashboard'; Invoke-BIAPause; Show-SysInfoMenu }
-        '5' { Export-BIAOnePageSummary; Write-BIALogAction '7' '5' 'Resumo 1 pagina'; Invoke-BIAPause; Show-SysInfoMenu }
+        '1' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_collecting') -Steps 12; Show-SysSummary; Invoke-BIAPause; Show-SysInfoMenu }
+        '2' { Export-SysInfo; Invoke-BIAPause; Show-SysInfoMenu }
+        '3' { Show-SysUptime; Invoke-BIAPause; Show-SysInfoMenu }
+        '4' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_updating') -Steps 6; Show-BIAWelcomeDashboard; Invoke-BIAPause; Show-SysInfoMenu }
+        '5' { Export-BIAOnePageSummary; Invoke-BIAPause; Show-SysInfoMenu }
         '0' { Show-MainMenu }
         default { Show-SysInfoMenu }
     }
@@ -798,10 +723,10 @@ function Export-BIAOnePageSummary {
     $reboot = $false
     try { $null = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction Stop; $reboot = $true } catch { }
     if (-not $reboot) { try { $null = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction Stop; $reboot = $true } catch { } }
-    $rebootStr = if ($reboot) { 'Sim' } else { 'Nao' }
+    $rebootStr = if ($reboot) { (Get-BIAStr 'yes_str') } else { (Get-BIAStr 'no_str') }
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $out = Join-Path $script:WorkDir "Resumo_${env:COMPUTERNAME}_$stamp.txt"
-    $lblReboot = if ($script:BIA_Lang -eq 'en') { 'Reboot pending' } elseif ($script:BIA_Lang -eq 'es') { 'Reinicio pendiente' } else { 'Pendencia de reinicio' }
+    $lblReboot = Get-BIAStr 'msg_reboot_pending'
     $lines = @(
         "=== BIA Resumo - $env:COMPUTERNAME - $stamp ===",
         "$(Get-BIAStr 'lbl_user'): $($data['Usuario'])",
@@ -886,7 +811,7 @@ function Export-SysInfo {
 # ---------- DIAGNOSTICO RAPIDO (Health) ----------
 function Show-HealthMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Diagnostico rapido (health check) ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_health') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
         '  [1] Executar diagnostico completo',
         '  [2] Eventos de erro (ultimas 24h)',
@@ -894,7 +819,7 @@ function Show-HealthMenu {
         '  [4] Espaco em disco + memoria',
         '  [0] Voltar'
     )
-    $op = (Read-Host '  Escolha').Trim()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim()
     switch ($op) {
         '1' { Invoke-HealthCheckFull; Invoke-BIAPause; Show-HealthMenu }
         '2' { Show-RecentErrors; Invoke-BIAPause; Show-HealthMenu }
@@ -906,27 +831,27 @@ function Show-HealthMenu {
 }
 
 function Invoke-HealthCheckFull {
-    Write-BIAMessage 'Iniciando diagnostico...' Info
-    Write-BIAProgressBar -Message 'Disco' -TotalSteps 5
+    Write-BIAMessage (Get-BIAStr 'health_start') Info
+    Write-BIAProgressBar -Message (Get-BIAStr 'health_disk') -TotalSteps 5
     $vols = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3" -ErrorAction SilentlyContinue
     foreach ($v in $vols) {
         $freePct = if ($v.Size -gt 0) { [math]::Round(($v.FreeSpace / $v.Size) * 100, 1) } else { 0 }
-        $status = if ($freePct -lt 10) { 'CRITICO' } elseif ($freePct -lt 20) { 'ATENCAO' } else { 'OK' }
-        Write-Host "    $($v.DeviceID) Livre: $freePct% - $status" -ForegroundColor $(if ($freePct -lt 10) { 'Red' } elseif ($freePct -lt 20) { 'Yellow' } else { 'Green' })
+        $status = if ($freePct -lt 10) { (Get-BIAStr 'health_critical') } elseif ($freePct -lt 20) { (Get-BIAStr 'health_warning') } else { (Get-BIAStr 'health_ok') }
+        Write-Host "    $($v.DeviceID) $(Get-BIAStr 'health_free'): $freePct% - $status" -ForegroundColor $(if ($freePct -lt 10) { 'Red' } elseif ($freePct -lt 20) { 'Yellow' } else { 'Green' })
     }
-    Write-BIAProgressBar -Message 'Memoria' -TotalSteps 5
+    Write-BIAProgressBar -Message (Get-BIAStr 'health_mem') -TotalSteps 5
     $os = Get-WmiObject Win32_OperatingSystem -ErrorAction SilentlyContinue
     if ($os) {
         $freeMB = [math]::Round($os.FreePhysicalMemory / 1024, 0)
         $totalMB = [math]::Round($os.TotalVisibleMemorySize / 1024, 0)
         $pct = [math]::Round(($os.FreePhysicalMemory / $os.TotalVisibleMemorySize) * 100, 1)
-        Write-Host "    RAM: $freeMB MB livre de $totalMB MB ($pct% livre)" -ForegroundColor $(if ($pct -lt 15) { 'Yellow' } else { 'Green' })
+        Write-Host "    RAM: $freeMB MB $(Get-BIAStr 'disk_free_of') $totalMB MB ($pct% $(Get-BIAStr 'disk_free_pct'))" -ForegroundColor $(if ($pct -lt 15) { 'Yellow' } else { 'Green' })
     }
-    Write-BIAProgressBar -Message 'Rede (ping)' -TotalSteps 5
+    Write-BIAProgressBar -Message (Get-BIAStr 'health_network') -TotalSteps 5
     $pingOk = $false
     try { $r = Test-Connection -ComputerName 8.8.8.8 -Count 1 -Quiet -ErrorAction Stop; $pingOk = $r } catch { }
-    Write-Host "    Internet (8.8.8.8): $(if ($pingOk) { 'OK' } else { 'FALHA' })" -ForegroundColor $(if ($pingOk) { 'Green' } else { 'Red' })
-    Write-BIAProgressBar -Message 'Servicos criticos' -TotalSteps 5
+    Write-Host "    Internet (8.8.8.8): $(if ($pingOk) { (Get-BIAStr 'health_ok') } else { (Get-BIAStr 'health_fail') })" -ForegroundColor $(if ($pingOk) { 'Green' } else { 'Red' })
+    Write-BIAProgressBar -Message (Get-BIAStr 'health_services') -TotalSteps 5
     $svcs = @('Spooler', 'Dhcp', 'Dnscache', 'Winmgmt')
     foreach ($s in $svcs) {
         $svc = Get-Service -Name $s -ErrorAction SilentlyContinue
@@ -980,7 +905,7 @@ function Show-HealthDiskMem {
 # ---------- IMPRESSORAS ----------
 function Show-PrintersMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Impressoras ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_printers') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
         '  [1] Listar impressoras instaladas',
         '  [2] Definir impressora padrao',
@@ -993,9 +918,9 @@ function Show-PrintersMenu {
         '  [9] Listar trabalhos na fila',
         '  [0] Voltar'
     )
-    $op = (Read-Host '  Escolha').Trim()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim()
     switch ($op) {
-        '1' { Show-BIALoadingShort -Message 'Listando impressoras...' -Steps 6; Get-Printer -ErrorAction SilentlyContinue | Format-Table Name, DriverName, PortName -AutoSize; Invoke-BIAPause; Show-PrintersMenu }
+        '1' { Show-BIALoadingShort -Message (Get-BIAStr 'msg_listing_printers') -Steps 6; Get-Printer -ErrorAction SilentlyContinue | Format-Table Name, DriverName, PortName -AutoSize; Invoke-BIAPause; Show-PrintersMenu }
         '2' { $p = (Read-Host '  Nome da impressora para definir como padrao').Trim(); if ($p) { try { Set-Printer -Name $p -Default $true -ErrorAction Stop; Write-BIAMessage "Padrao: $p" Success } catch { Write-BIAMessage "Erro: $_" Error } }; Invoke-BIAPause; Show-PrintersMenu }
         '3' { Start-Process 'control.exe' -ArgumentList 'printers'; Write-BIAMessage 'Abrindo Painel de Impressoras.' Info; Show-PrintersMenu }
         '4' { Start-Process 'rundll32.exe' -ArgumentList 'printui.dll,PrintUIEntry /il'; Write-BIAMessage 'Assistente Adicionar impressora.' Info; Invoke-BIAPause; Show-PrintersMenu }
@@ -1012,44 +937,26 @@ function Show-PrintersMenu {
 # ---------- COMANDOS E FERRAMENTAS (CMD / PS) ----------
 function Show-ToolsMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Comandos e ferramentas (CMD / PowerShell) ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_tools') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
-        '  --- Rede ---',
-        '  [1] nslookup (consultar DNS)',
-        '  [2] Test-NetConnection (host + porta)',
-        '  [3] route print',
-        '  [4] arp -a (tabela ARP)',
-        '  [5] ipconfig /displaydns (cache DNS)',
-        '  --- Sistema e usuario ---',
-        '  [6] whoami /all',
-        '  [7] Variaveis de ambiente (listar)',
-        '  [8] Tarefas agendadas (listar)',
-        '  [9] Programas de inicializacao',
-        '  [a] Pendencia de reinicio (reboot pending)',
-        '  --- Seguranca e manutencao ---',
-        '  [b] Windows Defender (status + scan rapido)',
-        '  [c] DISM RestoreHealth (reparo da imagem)',
-        '  [d] Relatorio de bateria (powercfg)',
-        '  [e] Ativacao do Windows (status)',
-        '  [f] Relatorio de Confiabilidade (perfmon /rel)',
-        '  --- Arquivos e clipboard ---',
-        '  [g] Ver conteudo do clipboard',
-        '  [h] Hash de arquivo (SHA256)',
-        '  [i] Esvaziar Lixeira',
-        '  --- Atalhos (painelis) ---',
-        '  [j] Programas (appwiz.cpl) | Rede (ncpa.cpl) | Energia | Som | Data/hora | Credenciais',
-        '  --- Outros ---',
-        '  [k] net share (compartilhamentos)',
-        '  [l] net user (usuarios locais)',
-        '  [m] Bloquear estacao (LockWorkStation)',
-        '  [n] Processo por porta (qual processo usa a porta X)',
-        '  [o] WSL --list (se instalado)',
-        '  [0] Voltar'
+        (Get-BIAStr 'tools_cat_net'),
+        (Get-BIAStr 'tools_1'), (Get-BIAStr 'tools_2'), (Get-BIAStr 'tools_3'), (Get-BIAStr 'tools_4'), (Get-BIAStr 'tools_5'),
+        (Get-BIAStr 'tools_cat_sys'),
+        (Get-BIAStr 'tools_6'), (Get-BIAStr 'tools_7'), (Get-BIAStr 'tools_8'), (Get-BIAStr 'tools_9'), (Get-BIAStr 'tools_a'),
+        (Get-BIAStr 'tools_cat_sec'),
+        (Get-BIAStr 'tools_b'), (Get-BIAStr 'tools_c'), (Get-BIAStr 'tools_d'), (Get-BIAStr 'tools_e'), (Get-BIAStr 'tools_f'),
+        (Get-BIAStr 'tools_cat_files'),
+        (Get-BIAStr 'tools_g'), (Get-BIAStr 'tools_h'), (Get-BIAStr 'tools_i'),
+        (Get-BIAStr 'tools_cat_shortcuts'),
+        (Get-BIAStr 'tools_j'),
+        (Get-BIAStr 'tools_cat_other'),
+        (Get-BIAStr 'tools_k'), (Get-BIAStr 'tools_l'), (Get-BIAStr 'tools_m'), (Get-BIAStr 'tools_n'), (Get-BIAStr 'tools_o'),
+        (Get-BIAStr 'tools_0')
     )
-    $op = (Read-Host '  Escolha').Trim().ToLower()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim().ToLower()
     switch ($op) {
-        '1' { $h = (Read-Host '  Nome ou IP para consultar DNS').Trim(); if ($h) { nslookup $h }; Invoke-BIAPause; Show-ToolsMenu }
-        '2' { $target = (Read-Host '  Host (ex: 8.8.8.8 ou google.com)').Trim(); $portStr = (Read-Host '  Porta (Enter=pula, ex: 443)').Trim(); if ($target) { $p = 0; if ($portStr -and [int]::TryParse($portStr, [ref]$p) -and $p -gt 0) { Test-NetConnection -ComputerName $target -Port $p } else { Test-NetConnection -ComputerName $target } }; Invoke-BIAPause; Show-ToolsMenu }
+        '1' { $h = (Read-Host (Get-BIAStr 'msg_dns_query_prompt')).Trim(); if ($h) { nslookup $h }; Invoke-BIAPause; Show-ToolsMenu }
+        '2' { $target = (Read-Host (Get-BIAStr 'msg_host_port')).Trim(); $portStr = (Read-Host (Get-BIAStr 'msg_port_enter')).Trim(); if ($target) { $p = 0; if ($portStr -and [int]::TryParse($portStr, [ref]$p) -and $p -gt 0) { Test-NetConnection -ComputerName $target -Port $p } else { Test-NetConnection -ComputerName $target } }; Invoke-BIAPause; Show-ToolsMenu }
         '3' { route print; Invoke-BIAPause; Show-ToolsMenu }
         '4' { arp -a; Invoke-BIAPause; Show-ToolsMenu }
         '5' { ipconfig /displaydns | More; Invoke-BIAPause; Show-ToolsMenu }
@@ -1057,21 +964,21 @@ function Show-ToolsMenu {
         '7' { Get-ChildItem Env: | Sort-Object Name | Format-Table -AutoSize; Invoke-BIAPause; Show-ToolsMenu }
         '8' { Get-ScheduledTask | Where-Object State -eq Ready | Select-Object TaskName, TaskPath, State | Format-Table -AutoSize; Invoke-BIAPause; Show-ToolsMenu }
         '9' { Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyContinue | Select-Object Name, Command, Location | Format-Table -AutoSize -Wrap; Invoke-BIAPause; Show-ToolsMenu }
-        'a' { $key = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction SilentlyContinue; $win = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction SilentlyContinue; if ($key -or $win) { Write-BIAMessage 'Ha pendencia de reinicio.' Warning } else { Write-BIAMessage 'Nenhuma pendencia de reinicio detectada.' Success }; Invoke-BIAPause; Show-ToolsMenu }
-        'b' { try { $mp = Get-MpComputerStatus -ErrorAction Stop; Write-Host '  Defender: ' -NoNewline; Write-Host $mp.AntivirusEnabled -ForegroundColor $(if ($mp.AntivirusEnabled) { 'Green' } else { 'Yellow' }); Write-Host '  Ultima varredura: ' $mp.QuickScanStartTime; $r = (Read-Host '  Executar scan rapido agora? (s/n)').Trim().ToLower(); if ($r -eq 's') { Start-MpScan -ScanType Quick; Write-BIAMessage 'Scan iniciado.' Success } } catch { Write-BIAMessage 'Defender/Get-MpComputerStatus nao disponivel.' Warning }; Invoke-BIAPause; Show-ToolsMenu }
-        'c' { Write-BIAMessage 'DISM /Online /Cleanup-Image /RestoreHealth pode demorar. Requer admin.' Warning; if ((Read-Host '  Continuar? (s/n)').Trim().ToLower() -eq 's') { DISM /Online /Cleanup-Image /RestoreHealth }; Invoke-BIAPause; Show-ToolsMenu }
-        'd' { $desk = [Environment]::GetFolderPath('Desktop'); Push-Location $desk; powercfg /batteryreport 2>$null; Pop-Location; $out = Join-Path $desk 'battery-report.html'; if (Test-Path $out) { Write-BIAMessage "Relatorio: $out" Success; Start-Process $out } else { Write-BIAMessage 'Relatorio gerado no diretorio atual.' Info }; Invoke-BIAPause; Show-ToolsMenu }
+        'a' { $key = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending' -ErrorAction SilentlyContinue; $win = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired' -ErrorAction SilentlyContinue; if ($key -or $win) { Write-BIAMessage (Get-BIAStr 'msg_reboot_pending_detect') Warning } else { Write-BIAMessage (Get-BIAStr 'msg_no_reboot_pending_detect') Success }; Invoke-BIAPause; Show-ToolsMenu }
+        'b' { try { $mp = Get-MpComputerStatus -ErrorAction Stop; Write-Host '  Defender: ' -NoNewline; Write-Host $mp.AntivirusEnabled -ForegroundColor $(if ($mp.AntivirusEnabled) { 'Green' } else { 'Yellow' }); Write-Host "  $(Get-BIAStr 'msg_last_scan'): " -NoNewline; Write-Host $mp.QuickScanStartTime; $r = (Read-Host (Get-BIAStr 'msg_defender_scan_confirm')).Trim().ToLower(); if ($r -eq 's' -or $r -eq 'y') { Start-MpScan -ScanType Quick; Write-BIAMessage (Get-BIAStr 'msg_scan_started') Success } } catch { Write-BIAMessage (Get-BIAStr 'msg_defender_na_short') Warning }; Invoke-BIAPause; Show-ToolsMenu }
+        'c' { Write-BIAMessage (Get-BIAStr 'msg_dism_warn') Warning; if ((Read-Host (Get-BIAStr 'msg_continue_yn')).Trim().ToLower() -match '^[sy]') { DISM /Online /Cleanup-Image /RestoreHealth }; Invoke-BIAPause; Show-ToolsMenu }
+        'd' { $desk = [Environment]::GetFolderPath('Desktop'); Push-Location $desk; powercfg /batteryreport 2>$null; Pop-Location; $out = Join-Path $desk 'battery-report.html'; if (Test-Path $out) { Write-BIAMessage "$(Get-BIAStr 'msg_report_saved') $out" Success; Start-Process $out } else { Write-BIAMessage (Get-BIAStr 'msg_report_generated') Info }; Invoke-BIAPause; Show-ToolsMenu }
         'e' { Show-BIAWindowsActivation; Invoke-BIAPause; Show-ToolsMenu }
-        'f' { Start-Process 'perfmon' -ArgumentList '/rel'; Write-BIAMessage 'Abrindo Relatorio de Confiabilidade.' Info; Show-ToolsMenu }
-        'g' { $c = Get-Clipboard -ErrorAction SilentlyContinue; if ($c) { Write-Host "  Clipboard ($($c.GetType().Name)): " -ForegroundColor $BIA_Theme.Menu; $c | Out-String | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  (vazio ou nao suportado)' }; Invoke-BIAPause; Show-ToolsMenu }
-        'h' { $f = (Read-Host '  Caminho do arquivo').Trim(); if ($f -and (Test-Path $f)) { Get-FileHash -Path $f -Algorithm SHA256 | Format-List } else { Write-BIAMessage 'Arquivo nao encontrado.' Warning }; Invoke-BIAPause; Show-ToolsMenu }
-        'i' { Clear-RecycleBin -Force -ErrorAction SilentlyContinue; Write-BIAMessage 'Lixeira esvaziada.' Success; Invoke-BIAPause; Show-ToolsMenu }
-        'j' { Write-Host '  [1] Programas  [2] Rede  [3] Energia  [4] Som  [5] Data/hora  [6] Credenciais' -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process appwiz.cpl }; if ($r -eq '2') { Start-Process ncpa.cpl }; if ($r -eq '3') { Start-Process powercfg.cpl }; if ($r -eq '4') { Start-Process mmsys.cpl }; if ($r -eq '5') { Start-Process timedate.cpl }; if ($r -eq '6') { Start-Process 'control.exe' -ArgumentList '/name', 'Microsoft.CredentialManager' }; Show-ToolsMenu }
+        'f' { Start-Process 'perfmon' -ArgumentList '/rel'; Write-BIAMessage (Get-BIAStr 'msg_opening_reliability_short') Info; Show-ToolsMenu }
+        'g' { $c = Get-Clipboard -ErrorAction SilentlyContinue; if ($c) { Write-Host "  Clipboard ($($c.GetType().Name)): " -ForegroundColor $BIA_Theme.Menu; $c | Out-String | ForEach-Object { Write-Host "  $_" } } else { Write-Host "  $(Get-BIAStr 'msg_clipboard_empty')" }; Invoke-BIAPause; Show-ToolsMenu }
+        'h' { $f = (Read-Host (Get-BIAStr 'msg_path_prompt')).Trim(); if ($f -and (Test-Path $f)) { Get-FileHash -Path $f -Algorithm SHA256 | Format-List } else { Write-BIAMessage (Get-BIAStr 'msg_file_not_found') Warning }; Invoke-BIAPause; Show-ToolsMenu }
+        'i' { Clear-RecycleBin -Force -ErrorAction SilentlyContinue; Write-BIAMessage (Get-BIAStr 'msg_recycle_emptied') Success; Invoke-BIAPause; Show-ToolsMenu }
+        'j' { Write-Host (Get-BIAStr 'msg_panels_menu') -ForegroundColor $BIA_Theme.Menu; $r = (Read-Host).Trim(); if ($r -eq '1') { Start-Process appwiz.cpl }; if ($r -eq '2') { Start-Process ncpa.cpl }; if ($r -eq '3') { Start-Process powercfg.cpl }; if ($r -eq '4') { Start-Process mmsys.cpl }; if ($r -eq '5') { Start-Process timedate.cpl }; if ($r -eq '6') { Start-Process 'control.exe' -ArgumentList '/name', 'Microsoft.CredentialManager' }; Show-ToolsMenu }
         'k' { net share; Invoke-BIAPause; Show-ToolsMenu }
         'l' { net user; Invoke-BIAPause; Show-ToolsMenu }
-        'm' { Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class PInvoke { [DllImport("user32.dll")] public static extern void LockWorkStation(); }'; [PInvoke]::LockWorkStation(); Write-BIAMessage 'Estacao bloqueada.' Info; Start-Sleep -Seconds 2; Show-ToolsMenu }
-        'n' { $port = (Read-Host '  Numero da porta (ex: 443)').Trim(); if ($port) { $conn = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -First 5; if ($conn) { $conn | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; Write-Host "  Porta $port -> PID $($_.OwningProcess) -> $($p.ProcessName)" } } else { Write-Host '  Nenhum processo encontrado nessa porta.' } }; Invoke-BIAPause; Show-ToolsMenu }
-        'o' { & wsl --list 2>$null; if ($LASTEXITCODE -ne 0) { Write-BIAMessage 'WSL nao instalado.' Warning }; Invoke-BIAPause; Show-ToolsMenu }
+        'm' { Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class PInvoke { [DllImport("user32.dll")] public static extern void LockWorkStation(); }'; [PInvoke]::LockWorkStation(); Write-BIAMessage (Get-BIAStr 'msg_station_locked') Info; Start-Sleep -Seconds 2; Show-ToolsMenu }
+        'n' { $port = (Read-Host (Get-BIAStr 'msg_port_number')).Trim(); if ($port) { $conn = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Select-Object -First 5; if ($conn) { $conn | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; Write-Host "  $(Get-BIAStr 'lbl_port') $port -> PID $($_.OwningProcess) -> $($p.ProcessName)" } } else { Write-Host (Get-BIAStr 'msg_no_process_port') } }; Invoke-BIAPause; Show-ToolsMenu }
+        'o' { & wsl --list 2>$null; if ($LASTEXITCODE -ne 0) { Write-BIAMessage (Get-BIAStr 'msg_wsl_not_installed') Warning }; Invoke-BIAPause; Show-ToolsMenu }
         '0' { Show-MainMenu }
         default { Show-ToolsMenu }
     }
@@ -1113,7 +1020,7 @@ function Install-BIAAzureCLIIfNeeded {
 
 function Show-AzureMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Azure - Connect e CLI ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_azure') -IP $script:BIA_PrimaryIP
     Write-BIABox -Lines @(
         '  [1] Connect-AzAccount (PowerShell Az - login)',
         '  [2] Ver contexto Az (Get-AzContext)',
@@ -1123,7 +1030,7 @@ function Show-AzureMenu {
         '  [6] Instalar Azure CLI (winget)',
         '  [0] Voltar'
     )
-    $op = (Read-Host '  Escolha').Trim()
+    $op = (Read-Host "  $(Get-BIAStr 'msg_prompt_choice')").Trim()
     switch ($op) {
         '1' {
             if (Install-BIAAzModuleIfNeeded) {
@@ -1189,7 +1096,7 @@ $script:BIA_WingetApps = @(
 )
 function Show-InstallAppsMenu {
     if (-not $script:BIA_PrimaryIP) { $script:BIA_PrimaryIP = Get-BIAPrimaryIP }
-    Write-BIAHeader -Subtitle ' Instalar aplicativos (winget) ' -IP $script:BIA_PrimaryIP
+    Write-BIAHeader -Subtitle (Get-BIAStr 'title_install') -IP $script:BIA_PrimaryIP
     $lines = @()
     for ($i = 0; $i -lt $script:BIA_WingetApps.Count; $i++) {
         $lines += "  [$($i+1)] $($script:BIA_WingetApps[$i].Name)"
@@ -1227,7 +1134,7 @@ function Exit-BIA {
     Write-Host ''
     if ($env:BIA_DEBUG -eq '1') {
         Write-Host (' ' * [int]$pad) -NoNewline
-        Write-Host 'DEBUG ativo: pressione ENTER para fechar.' -ForegroundColor $BIA_Theme.Muted
+        Write-Host (Get-BIAStr 'msg_debug_prompt') -ForegroundColor $BIA_Theme.Muted
         Read-Host
     }
     exit 0

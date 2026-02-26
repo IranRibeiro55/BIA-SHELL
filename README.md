@@ -55,7 +55,7 @@ Digite **1**, **2** ou **3** e pressione **Enter**. O restante do assistente (me
 
 Após o idioma, o BIA exibe:
 
-1. **Cabeçalho** com usuário, computador e IP.  
+1. **Cabeçalho** com usuário, computador e IP (rótulos e título da janela no idioma escolhido).  
 2. **Resumo da máquina:** usuário, computador, domínio AD, SO, versão, uptime, fabricante, modelo, RAM, disco, IP(s), data/hora.  
 3. **Saudação** (Bom dia / Boa tarde / Boa noite) + seu nome.  
 4. **“Como posso ajudar?”** — pressione **Enter** para ver o menu principal.
@@ -138,7 +138,7 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` e o `BIA-Lang.ps1` no início. Não ren
 ## O que o BIA faz
 
 - **Tela inicial:** resumo da máquina (usuário, computador, domínio AD, SO, uptime, fabricante, modelo, RAM, disco, IP) e saudação (Bom dia / Boa tarde / Boa noite).
-- **Cabeçalho em todas as telas:** usuário, computador e **IP** sempre visíveis.
+- **Cabeçalho em todas as telas:** usuário, computador e **IP** sempre visíveis; rótulos e título da janela mudam conforme o idioma (PT/EN/ES).
 - **Opção “Voltar ao início” (R):** volta ao resumo e à pergunta “Como posso ajudar?”.
 - **Animações:** splash de carregamento, barras de progresso, spinner em operações longas, transições entre menus.
 - **Idiomas:** PT, EN e ES (escolha no início).
@@ -386,7 +386,7 @@ Reúne comandos e ferramentas comuns em um único menu:
 
 ## Idiomas e versão
 
-- **Idiomas:** No início da execução o BIA pergunta o idioma (1=PT, 2=EN, 3=ES). Menus principais, saudação, mensagens de saída, playbooks, resumo em uma página e aviso de nova versão usam o idioma escolhido. Alguns submenus (TI, AD, Rede, Utilitários, Diagnóstico, Impressoras, Azure, Comandos e ferramentas, Instalar apps) podem ainda exibir texto em português.
+- **Idiomas:** No início da execução o BIA pergunta o idioma (1=PT, 2=EN, 3=ES). O **cabeçalho** (rótulos "Usuário"/"Computador" e título da janela), menus principais, subtítulos dos submenus (Diagnóstico, Impressoras, Comandos e ferramentas, Azure, Instalar aplicativos), prompts de "Escolha", saudação, mensagens de saída, playbooks, resumo em uma página e aviso de nova versão usam o idioma escolhido.
 - **Verificação de versão:** Na inicialização o BIA consulta a API do GitHub para a última release. Se a versão disponível for maior que a atual (ex.: 8.0), exibe uma mensagem do tipo “Nova versão disponível: X.X (atual: Y.Y) | link”. A versão atual está definida em `$script:BIA_Version` em `BIA-Shell.ps1`.
 
 ---
