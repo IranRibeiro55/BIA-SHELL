@@ -18,6 +18,26 @@ try {
     $script:ScreenWidth = 80
 }
 
+# ---- Tela cheia (maximizar janela do console) ----
+function Invoke-BIAMaximizeWindow {
+    try {
+        $code = @'
+[DllImport("kernel32.dll", SetLastError = true)] public static extern IntPtr GetConsoleWindow();
+[DllImport("user32.dll", SetLastError = true)] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+'@
+        Add-Type -Name NativeWin -Namespace BIA -MemberDefinition $code -ErrorAction SilentlyContinue
+        $hwnd = [BIA.NativeWin]::GetConsoleWindow()
+        if ($hwnd -ne [IntPtr]::Zero) {
+            [BIA.NativeWin]::ShowWindow($hwnd, 3) | Out-Null  # 3 = SW_MAXIMIZE
+            Start-Sleep -Milliseconds 200
+        }
+    } catch { }
+    try {
+        $script:ScreenWidth = [Math]::Min(160, $Host.UI.RawUI.WindowSize.Width)
+        if ($script:ScreenWidth -lt 80) { $script:ScreenWidth = 80 }
+    } catch { }
+}
+
 # ---- Spinner (animacao rotativa durante operacao) ----
 $script:BIA_SpinnerChars = @('|', '/', '-', '\')
 function Show-BIASpinner {
@@ -87,13 +107,46 @@ function Show-BIATyping {
     param(
         [string]$Text,
         [int]$DelayMs = 30,
-        [switch]$NoNewline
+        [switch]$NoNewline,
+        [string]$Color = ''
     )
+    $fc = if ($Color -and $BIA_Theme.ContainsKey($Color)) { $BIA_Theme[$Color] } else { $BIA_Theme.Menu }
     foreach ($c in $Text.ToCharArray()) {
-        Write-Host $c -NoNewline -ForegroundColor $BIA_Theme.Menu
+        Write-Host $c -NoNewline -ForegroundColor $fc
         Start-Sleep -Milliseconds $DelayMs
     }
     if (-not $NoNewline) { Write-Host '' }
+}
+
+# ---- Agente: "Pensando..." com pontos animados ----
+function Show-BIAThinking {
+    param([string]$Message = 'Pensando...', [int]$Seconds = 2)
+    $end = (Get-Date).AddSeconds($Seconds)
+    $idx = 0
+    $dots = @('.', '..', '...', '....')
+    while ((Get-Date) -lt $end) {
+        $d = $dots[$idx % 4]
+        Write-Host "`r  [ BIA ] $Message$d    " -NoNewline -ForegroundColor $BIA_Theme.Accent
+        $idx++
+        Start-Sleep -Milliseconds 250
+    }
+    Write-Host "`r  [ BIA ] $Message... OK.    " -ForegroundColor $BIA_Theme.Success
+}
+
+# ---- Agente: mensagem de sucesso com check ----
+function Show-BIAAgentSuccess {
+    param([string]$Text = 'Concluido.')
+    Write-Host "  [ " -NoNewline
+    Write-Host "OK" -NoNewline -ForegroundColor $BIA_Theme.Success
+    Write-Host " ] $Text" -ForegroundColor $BIA_Theme.Menu
+}
+
+# ---- Agente: fala com efeito de digitacao (mais rapido) ----
+function Show-BIAAgentSay {
+    param([string]$Text, [int]$DelayMs = 20)
+    Write-Host '  ' -NoNewline
+    Show-BIATyping -Text $Text -DelayMs $DelayMs -NoNewline
+    Write-Host ''
 }
 
 # ---- Loading full screen (reutilizavel) ----
@@ -202,7 +255,7 @@ function Show-BIASplash {
   |  _ \ | |   \___ \ / _ \ '__/ _` | '_ \
   | |_) || |    ___) |  __/ | | (_| | | | |
   |____/|___|  |____/ \___|_|  \__,_|_| |_|
-     SHELL v8 - CoreSafe
+     SHELL v8 - CoreSafe | Seu agente de TI
   Desenvolvido por Iran Ribeiro
   https://github.com/IranRibeiro55
 '@
@@ -212,8 +265,8 @@ function Show-BIASplash {
     $i = 0
     foreach ($line in $lines) {
         Write-Host (' ' * [int]$pad) -NoNewline
-        if ($i -eq 7) { Write-Host $line -ForegroundColor DarkGray }
-        elseif ($i -eq 8) { Write-Host $line -ForegroundColor Cyan }
+        if ($i -eq 7) { Write-Host $line -ForegroundColor $BIA_Theme.Accent }
+        elseif ($i -eq 8) { Write-Host $line -ForegroundColor DarkGray }
         else { Write-Host $line -ForegroundColor Cyan }
         $i++
     }
@@ -249,11 +302,27 @@ function Write-BIAProgressBar {
     Write-Host "] Concluido.    " -ForegroundColor $BIA_Theme.Success
 }
 
+$script:BIA_PauseMessages = @(
+    'Pronto. Pressione ENTER para continuar...',
+    'Tudo certo. Quando quiser, e so continuar...',
+    'Feito! Pressione ENTER quando quiser.',
+    'Pode continuar quando estiver pronto.',
+    'Estou aqui. Pressione ENTER para seguir.'
+)
+
 function Invoke-BIAPause {
-    $pad = [Math]::Max(0, ($ScreenWidth - 45) / 2)
+    param([switch]$WithTyping)
+    $msg = $script:BIA_PauseMessages[(Get-Random -Maximum $script:BIA_PauseMessages.Count)]
+    $useTyping = $WithTyping -or ((Get-Random -Maximum 100) -lt 35)
+    $pad = [Math]::Max(0, ($ScreenWidth - [Math]::Min($msg.Length + 12, 60)) / 2)
     Write-Host ''
     Write-Host (' ' * [int]$pad) -NoNewline
-    Write-Host '[ BIA ] Pressione ENTER para continuar... ' -ForegroundColor $BIA_Theme.Muted
+    if ($useTyping) {
+        Show-BIATyping -Text "[ BIA ] $msg " -DelayMs 18 -NoNewline -Color Muted
+        Write-Host ''
+    } else {
+        Write-Host "[ BIA ] $msg " -ForegroundColor $BIA_Theme.Muted
+    }
     Read-Host
 }
 

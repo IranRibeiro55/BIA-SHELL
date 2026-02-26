@@ -1,6 +1,6 @@
 @echo off
 title BIA Shell - Launcher
-:: Executa BIA Shell em PowerShell (v7 - UI moderna)
+:: Executa BIA Shell em PowerShell 5.1+ (Bypass para scripts)
 set "SCRIPT=%~dp0BIA-Shell.ps1"
 if not exist "%SCRIPT%" (
     echo [ERRO] Nao encontrado: %SCRIPT%

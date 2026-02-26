@@ -99,13 +99,14 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 - **2 – TI** – Ferramentas para administradores.
 - **3 – Servidor / Active Directory** – AD, GPO, DNS, DHCP, repadmin, dcdiag, etc.
 - **4 – Rede e Segurança** – Ping, tracert, netstat, firewall, winsock, mapear unidade, abrir \\computador.
-- **5 – Utilitários** – Regedit, desligamento agendado, limpeza de disco, otimizar volumes, backup do registro, TeamViewer/AnyDesk, atalhos (Notepad, Calc, CMD, PowerShell).
+- **5 – Utilitários** – Regedit, desligamento agendado, limpeza de disco, otimizar volumes, backup do registro, TeamViewer/AnyDesk, atalhos (Notepad, Calc, CMD, PowerShell), esvaziar Lixeira, variáveis de ambiente, clipboard, hash de arquivo, relatório de bateria, ativação do Windows, painéis (Programas, Rede, Energia, Som, Data/hora, Credenciais).
 - **6 – Playbooks automáticos** – PC lento, sem internet, impressora travada (ações em sequência).
 - **7 – Informações do sistema** – Resumo detalhado, export para TXT, uptime, **dashboard** (mesmo resumo da tela inicial).
 - **8 – Diagnóstico rápido** – Health check (disco, RAM, rede, serviços), eventos de erro 24h, teste de conectividade, espaço em disco/RAM.
 - **9 – Impressoras** – Listar, definir padrão, adicionar/remover, página de teste, reiniciar spooler, limpar fila, ver trabalhos.
 - **10 – Azure** – Connect-AzAccount, Get-AzContext, az login, az account show, instalar módulo Az ou Azure CLI.
-- **11 – Instalar aplicativos** – Instalação via winget (7-Zip, Chrome, Firefox, Notepad++, VLC, Git, VS Code, PowerShell 7, Azure CLI, etc.).
+- **11 – Instalar aplicativos** – Instalação via winget (7-Zip, Chrome, Firefox, Notepad++, VLC, Git, VS Code, PowerShell 7, Azure CLI, Teams, Slack, etc.).
+- **12 – Comandos e ferramentas (CMD / PowerShell)** – nslookup, Test-NetConnection, route, arp, whoami, variáveis de ambiente, tarefas agendadas, programas de inicialização, pendência de reinício, Windows Defender, DISM, relatório de bateria, ativação do Windows, Relatório de Confiabilidade, clipboard, hash de arquivo, esvaziar Lixeira, atalhos para painéis (Programas, Rede, Energia, Som, Data/hora, Credenciais), net share, net user, bloquear estação, processo por porta, WSL.
 - **R – Ver resumo da máquina** – Volta à tela inicial (resumo + saudação).
 - **S – Sobre** – Créditos e link do repositório (Iran Ribeiro / GitHub).
 - **0 – Sair** – Encerra o BIA (exibe créditos ao sair).
@@ -153,6 +154,16 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 | h | Status do BitLocker. |
 | i | Submenu: Assistência Remota (msra) ou Painel de Impressoras. |
 | j | Sessões RDP ativas (`query session`). |
+| k | `whoami /all`. |
+| l | Tarefas agendadas (listar). |
+| m | Programas de inicialização (Win32_StartupCommand). |
+| n | Windows Defender: status e scan rápido. |
+| o | `net share` (compartilhamentos). |
+| p | Verificar pendência de reinício. |
+| q | `net user` (usuários locais). |
+| r | Bloquear estação (LockWorkStation). |
+| s | Processo por porta (qual processo usa a porta X). |
+| t | Relatório de Confiabilidade (perfmon /rel). |
 | 0 | Voltar. |
 
 ---
@@ -181,6 +192,11 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 | 8 | Portas em uso (LISTEN/ESTABLISHED). |
 | 9 | Mapear unidade de rede (pede letra e caminho UNC). |
 | a | Abre pasta de rede (pede \\computador). |
+| b | nslookup (consultar DNS). |
+| c | Test-NetConnection (host e opcionalmente porta). |
+| d | route print. |
+| e | arp -a (tabela ARP). |
+| f | ipconfig /displaydns (cache DNS). |
 | 0 | Voltar. |
 
 ---
@@ -197,6 +213,13 @@ O `BIA-Shell.ps1` carrega o `BIA-UI.ps1` no início (dot-source). Não renomeie 
 | 7 | Backup do registro (exporta HKCU para `%TEMP%\BIA\`). |
 | 8 | Abre TeamViewer ou AnyDesk, se instalados. |
 | 9 | Atalhos: Bloco de notas, Calculadora, CMD, PowerShell. |
+| a | Esvaziar Lixeira. |
+| b | Variáveis de ambiente (listar). |
+| c | Ver conteúdo do clipboard. |
+| d | Hash de arquivo (SHA256). |
+| e | Relatório de bateria (powercfg; abre HTML na Área de Trabalho). |
+| f | Ativação do Windows (status). |
+| g | Painéis: Programas (appwiz), Rede (ncpa), Energia, Som, Data/hora, Credenciais. |
 | 0 | Voltar. |
 
 ---
@@ -261,6 +284,21 @@ Menu com lista de aplicativos instaláveis via **winget** (Windows Package Manag
 **Apps disponíveis (entre outros):** 7-Zip, Google Chrome, Firefox, Notepad++, VLC, Git, VS Code, PowerShell 7, Azure CLI, Windows Terminal, PuTTY, WinSCP, Java JRE, Python 3.12, Microsoft Teams, Zoom, Adobe Acrobat Reader, Microsoft Edge.
 
 Requer **winget** instalado (incluído no Windows 10/11 atualizado).
+
+---
+
+### 12) Comandos e ferramentas (CMD / PowerShell)
+
+Reúne comandos e ferramentas comuns de CMD e PowerShell em um único menu:
+
+| Área | Opção | Descrição |
+|------|-------|-----------|
+| Rede | 1–5 | nslookup, Test-NetConnection (host+porta), route print, arp -a, ipconfig /displaydns. |
+| Sistema | 6–a | whoami /all, variáveis de ambiente, tarefas agendadas, programas de inicialização, pendência de reinício. |
+| Segurança / Manutenção | b–f | Windows Defender (status + scan), DISM RestoreHealth, relatório de bateria, ativação do Windows, Relatório de Confiabilidade. |
+| Arquivos | g–i | Ver clipboard, hash de arquivo (SHA256), esvaziar Lixeira. |
+| Atalhos | j | Programas, Rede, Energia, Som, Data/hora, Credenciais (Credential Manager). |
+| Outros | k–o | net share, net user, bloquear estação, processo por porta, WSL --list. |
 
 ---
 
