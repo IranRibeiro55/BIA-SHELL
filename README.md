@@ -1,5 +1,19 @@
 # BIA Shell
 
+PowerShell helper for Windows support desks. Text UI, machine summary (user, AD, RAM, disk, IP), and a pile of menus I got tired of typing by hand: cleanup, network, AD consoles, printers, Azure login, winget.
+
+Languages: Portuguese, English, Spanish. Pick one at start.
+
+I wrote this for real tickets, not as a demo. Double-click `BIA-Launcher.bat`. Run as Administrator when you need SFC, restore points, or services.
+
+**Author:** [Iran Ribeiro](https://github.com/IranRibeiro55)
+
+Full walkthrough is in Portuguese below. Same repo, same scripts.
+
+---
+
+# BIA Shell (PT)
+
 **BIA Shell** é um assistente em PowerShell para equipes de TI e Suporte, com interface em modo texto, animações, resumo da máquina (usuário, AD, RAM, disco, IP) e dezenas de funções prontas para atendimento e diagnóstico.
 
 Desenvolvido por **Iran Ribeiro** · [GitHub](https://github.com/IranRibeiro55)
